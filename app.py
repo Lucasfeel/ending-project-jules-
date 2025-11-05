@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Blueprint 임포트
-from views.webtoons import webtoons_bp
+from views.contents import contents_bp
 from views.subscriptions import subscriptions_bp
 from database import close_db
 
@@ -21,7 +21,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Blueprint 등록
-app.register_blueprint(webtoons_bp)
+app.register_blueprint(contents_bp)
 app.register_blueprint(subscriptions_bp)
 
 # app 컨텍스트가 종료될 때마다 close_db를 호출하도록 설정
