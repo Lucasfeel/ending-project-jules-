@@ -1,14 +1,15 @@
 # test_email.py
-import sqlite3
 import os
 import sys
 import re
+from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from services.notification_service import send_email
+from database import get_db, get_cursor, close_db
 
-DATABASE = 'webtoons.db'
+load_dotenv()
 
 def is_valid_email(email):
     """서버 단에서 이메일 형식의 유효성을 검증합니다."""
@@ -28,18 +29,22 @@ def run_test():
 
     print("=== 이메일 발송 기능 테스트 시작 ===")
 
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT title FROM contents WHERE content_id = ? AND source = ?", (TEST_CONTENT_ID, TEST_SOURCE))
-    result = cursor.fetchone()
-    conn.close()
+    conn = None
+    try:
+        conn = get_db()
+        cursor = get_cursor(conn)
+        cursor.execute("SELECT title FROM contents WHERE content_id = %s AND source = %s", (TEST_CONTENT_ID, TEST_SOURCE))
+        result = cursor.fetchone()
+    finally:
+        if conn:
+            close_db()
 
     if not result:
         print(f"❌ 오류: DB에서 콘텐츠 ID {TEST_CONTENT_ID} ({TEST_SOURCE})를 찾을 수 없습니다.")
-        print("   'python3 crawlers/naver_webtoon_crawler.py'를 실행하여 DB에 데이터가 올바르게 수집되었는지 확인해주세요.")
+        print("   'python -m crawlers.naver_webtoon_crawler'를 실행하여 DB에 데이터가 올바르게 수집되었는지 확인해주세요.")
         return
 
-    content_title = result[0]
+    content_title = result['title']
     print(f"테스트 대상 콘텐츠: '{content_title}' (ID: {TEST_CONTENT_ID})")
     print(f"테스트 메일 수신 주소: {TEST_RECIPIENT_EMAIL}")
 
@@ -59,12 +64,16 @@ def run_test():
 
 
 if __name__ == '__main__':
-    if not os.getenv('EMAIL_ADDRESS') or not os.getenv('EMAIL_PASSWORD'):
+    required_env_vars = ['EMAIL_ADDRESS', 'EMAIL_PASSWORD', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']
+    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+
+    if missing_vars:
         print("="*60)
-        print("❌ [오류] 이메일 발송을 위한 환경 변수가 설정되지 않았습니다.")
-        print("   테스트를 진행하려면 터미널에 아래 명령어를 먼저 입력해주세요.")
-        print("\n   export EMAIL_ADDRESS='당신의G메일주소'")
-        print("   export EMAIL_PASSWORD='당신의16자리앱비밀번호'\n")
+        print("❌ [오류] 필수 환경 변수가 설정되지 않았습니다.")
+        print("   테스트를 진행하려면 .env 파일을 설정하거나 다음 환경 변수를 지정해주세요:")
+        for var in missing_vars:
+            print(f"   - {var}")
+        print("\n   예: export EMAIL_ADDRESS='당신의G메일주소'")
         print("="*60)
     else:
         run_test()
