@@ -155,8 +155,16 @@ class NaverWebtoonCrawler(ContentCrawler):
             cursor.executemany("UPDATE contents SET content_type=%s, title=%s, status=%s, meta=%s WHERE content_id=%s AND source=%s", updates)
             print(f"{len(updates)}개 웹툰 정보 업데이트 완료.")
         if inserts:
-            cursor.executemany("INSERT INTO contents (content_id, source, content_type, title, status, meta) VALUES (%s, %s, %s, %s, %s, %s)", inserts)
-            print(f"{len(inserts)}개 신규 웹툰 DB 추가 완료.")
+            seen_keys = set()
+            unique_inserts = []
+            for record in inserts:
+                key = (record[0], record[1]) # (content_id, source)
+                if key not in seen_keys:
+                    unique_inserts.append(record)
+                    seen_keys.add(key)
+
+            cursor.executemany("INSERT INTO contents (content_id, source, content_type, title, status, meta) VALUES (%s, %s, %s, %s, %s, %s)", unique_inserts)
+            print(f"{len(unique_inserts)}개 신규 웹툰 DB 추가 완료. (중복 {len(inserts) - len(unique_inserts)}개 제거)")
         conn.commit()
         cursor.close()
         print("DB 동기화 완료.")
