@@ -91,6 +91,17 @@ def setup_database_standalone():
         )""")
         print("LOG: [DB Setup] 'subscriptions' table created or already exists.")
 
+        print("LOG: [DB Setup] Enabling 'pg_trgm' extension...")
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+
+        print("LOG: [DB Setup] Creating GIN index on contents.title...")
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_contents_title_trgm
+            ON contents
+            USING gin (title gin_trgm_ops);
+        """)
+        print("LOG: [DB Setup] 'pg_trgm' setup complete.")
+
         print("LOG: [DB Setup] Committing changes...")
         conn.commit()
         print("LOG: [DB Setup] Changes committed.")

@@ -30,21 +30,18 @@ def search_contents():
     if not query:
         return jsonify([])
 
-    query_no_spaces = query.replace(' ', '')
-
     conn = get_db()
     cursor = get_cursor(conn)
 
-    search_pattern = f'%{query_no_spaces}%'
     cursor.execute(
         """
         SELECT content_id, title, status, meta
         FROM contents
-        WHERE REPLACE(title, ' ', '') LIKE %s AND content_type = %s
-        ORDER BY title
+        WHERE title %% %s AND content_type = %s
+        ORDER BY similarity(title, %s) DESC
         LIMIT 100
         """,
-        (search_pattern, content_type)
+        (query, content_type, query)
     )
 
     results = [process_row(row) for row in cursor.fetchall()]
@@ -80,65 +77,67 @@ def get_ongoing_contents():
 @contents_bp.route('/api/contents/hiatus', methods=['GET'])
 def get_hiatus_contents():
     """[페이지네이션] 휴재중인 콘텐츠 전체 목록을 페이지별로 반환합니다."""
-    page = request.args.get('page', 1, type=int)
+    last_title = request.args.get('last_title')
     per_page = 100
-    offset = (page - 1) * per_page
     content_type = request.args.get('type', 'webtoon')
 
     conn = get_db()
     cursor = get_cursor(conn)
 
-    cursor.execute("SELECT COUNT(*) as count FROM contents WHERE status = '휴재' AND content_type = %s", (content_type,))
-    total_items = cursor.fetchone()['count']
-    total_pages = math.ceil(total_items / per_page)
+    query_params = [content_type]
+    where_clause = "WHERE status = '휴재' AND content_type = %s"
+
+    if last_title:
+        where_clause += " AND title > %s"
+        query_params.append(last_title)
 
     cursor.execute(
-        "SELECT content_id, title, status, meta FROM contents WHERE status = '휴재' AND content_type = %s ORDER BY title LIMIT %s OFFSET %s",
-        (content_type, per_page, offset)
+        f"SELECT content_id, title, status, meta FROM contents {where_clause} ORDER BY title ASC LIMIT %s",
+        (*query_params, per_page)
     )
 
     results = [process_row(row) for row in cursor.fetchall()]
     cursor.close()
 
+    next_cursor = None
+    if len(results) == per_page:
+        next_cursor = results[-1]['title']
+
     return jsonify({
         'contents': results,
-        'pagination': {
-            'page': page,
-            'per_page': per_page,
-            'total_pages': total_pages,
-            'total_items': total_items
-        }
+        'next_cursor': next_cursor
     })
 
 @contents_bp.route('/api/contents/completed', methods=['GET'])
 def get_completed_contents():
-    """[페이지네이션] 완결된 콘텐츠 목록을 페이지별로 반환합니다."""
-    page = request.args.get('page', 1, type=int)
+    """[페이지네이션] 완결된 콘텐츠 전체 목록을 페이지별로 반환합니다."""
+    last_title = request.args.get('last_title')
     per_page = 100
-    offset = (page - 1) * per_page
     content_type = request.args.get('type', 'webtoon')
 
     conn = get_db()
     cursor = get_cursor(conn)
 
-    cursor.execute("SELECT COUNT(*) as count FROM contents WHERE status = '완결' AND content_type = %s", (content_type,))
-    total_items = cursor.fetchone()['count']
-    total_pages = math.ceil(total_items / per_page)
+    query_params = [content_type]
+    where_clause = "WHERE status = '완결' AND content_type = %s"
+
+    if last_title:
+        where_clause += " AND title > %s"
+        query_params.append(last_title)
 
     cursor.execute(
-        "SELECT content_id, title, status, meta FROM contents WHERE status = '완결' AND content_type = %s ORDER BY title LIMIT %s OFFSET %s",
-        (content_type, per_page, offset)
+        f"SELECT content_id, title, status, meta FROM contents {where_clause} ORDER BY title ASC LIMIT %s",
+        (*query_params, per_page)
     )
 
     results = [process_row(row) for row in cursor.fetchall()]
     cursor.close()
 
+    next_cursor = None
+    if len(results) == per_page:
+        next_cursor = results[-1]['title']
+
     return jsonify({
         'contents': results,
-        'pagination': {
-            'page': page,
-            'per_page': per_page,
-            'total_pages': total_pages,
-            'total_items': total_items
-        }
+        'next_cursor': next_cursor
     })

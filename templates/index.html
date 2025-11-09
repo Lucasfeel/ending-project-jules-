@@ -95,16 +95,16 @@
                 activeTab: 'mon',
                 currentTitleId: null,
                 searchTimeout: null,
-                isSearching: false, // [신규] 검색 상태 플래그
-                searchResults: [], // [신규] 검색 결과 저장
+                isSearching: false,
+                searchResults: [],
                 cache: {
                     ongoing: null,
                     hiatus: [],
                     completed: []
                 },
                 pagination: {
-                    hiatus: { currentPage: 1, totalPages: 1, isLoading: false },
-                    completed: { currentPage: 1, totalPages: 1, isLoading: false }
+                    hiatus: { nextCursor: null, hasMore: true, isLoading: false },
+                    completed: { nextCursor: null, hasMore: true, isLoading: false }
                 }
             };
 
@@ -118,15 +118,23 @@
                 }
             }
 
-            async function fetchDataForTab(tabKey, page = 1) {
+            async function fetchDataForTab(tabKey) {
                 const isPaginated = tabKey === 'hiatus' || tabKey === 'completed';
                 if (isPaginated) {
+                    if (state.pagination[tabKey].isLoading || !state.pagination[tabKey].hasMore) return;
                     state.pagination[tabKey].isLoading = true;
                 }
                 renderPagination();
 
                 try {
-                    const url = isPaginated ? `/api/contents/${tabKey}?page=${page}` : `/api/contents/ongoing`;
+                    let url;
+                    if (isPaginated) {
+                        const cursor = state.pagination[tabKey].nextCursor;
+                        url = cursor ? `/api/contents/${tabKey}?last_title=${encodeURIComponent(cursor)}` : `/api/contents/${tabKey}`;
+                    } else {
+                        url = `/api/contents/ongoing`;
+                    }
+
                     const response = await fetch(url);
                     if (!response.ok) throw new Error(`서버 응답 오류 (${response.status})`);
 
@@ -134,8 +142,8 @@
 
                     if (isPaginated) {
                         state.cache[tabKey].push(...data.contents);
-                        state.pagination[tabKey].currentPage = data.pagination.page;
-                        state.pagination[tabKey].totalPages = data.pagination.total_pages;
+                        state.pagination[tabKey].nextCursor = data.next_cursor;
+                        state.pagination[tabKey].hasMore = !!data.next_cursor;
                     } else {
                         state.cache.ongoing = data;
                     }
@@ -174,7 +182,7 @@
 
                 if (!state.cache[cacheKey] || (isPaginated && state.cache[cacheKey].length === 0)) {
                     showStatus('loading');
-                    await fetchDataForTab(tabKey, 1);
+                    await fetchDataForTab(tabKey);
                 } else {
                     renderWebtoonList();
                     renderPagination();
@@ -254,13 +262,11 @@
                 const pageState = state.pagination[tabKey];
                 if (pageState.isLoading) {
                     UI.paginationContainer.innerHTML = `<div class="loader"></div>`;
-                } else if (pageState.currentPage < pageState.totalPages) {
+                } else if (pageState.hasMore) {
                     const loadMoreButton = document.createElement('button');
                     loadMoreButton.textContent = '더 보기';
                     loadMoreButton.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-lg transition-colors';
-                    loadMoreButton.onclick = () => {
-                        fetchDataForTab(tabKey, pageState.currentPage + 1);
-                    };
+                    loadMoreButton.onclick = () => fetchDataForTab(tabKey);
                     UI.paginationContainer.innerHTML = '';
                     UI.paginationContainer.appendChild(loadMoreButton);
                 } else if (state.cache[tabKey].length > 0) {
