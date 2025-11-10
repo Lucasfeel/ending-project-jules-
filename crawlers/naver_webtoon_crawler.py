@@ -36,7 +36,7 @@ class NaverWebtoonCrawler(ContentCrawler):
     async def _fetch_paginated_finished_candidates(self, session):
         all_candidates = {}
         page = 1
-        MAX_PAGES = 20
+        MAX_PAGES = 150
         print("\n'완결/장기 휴재 후보' 목록 확보를 위해 페이지네이션 수집 시작...")
         while page <= MAX_PAGES:
             try:
@@ -61,7 +61,7 @@ class NaverWebtoonCrawler(ContentCrawler):
     async def _fetch_paginated_weekday_data(self, session, api_day):
         all_candidates = {}
         page = 1
-        MAX_PAGES = 20  # You can adjust this if needed
+        MAX_PAGES = 50  # You can adjust this if needed
         # print(f"\n'{api_day}' 요일 웹툰 목록 확보를 위해 페이지네이션 수집 시작...")
         while page <= MAX_PAGES:
             try:
