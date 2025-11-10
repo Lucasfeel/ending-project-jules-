@@ -6,25 +6,32 @@ from flask import g
 import os
 import sys
 
+def _create_connection():
+    """
+    환경 변수를 기반으로 새로운 데이터베이스 연결을 생성합니다.
+    DATABASE_URL이 있으면 우선 사용하고, 없으면 개별 변수를 사용합니다.
+    """
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        return psycopg2.connect(database_url)
+
+    # 로컬 개발 환경을 위한 개별 변수 확인
+    required_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']
+    if not all(os.environ.get(var) for var in required_vars):
+        raise ValueError("로컬 개발을 위해서는 DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT 환경 변수가 모두 필요합니다.")
+
+    return psycopg2.connect(
+        dbname=os.environ.get('DB_NAME'),
+        user=os.environ.get('DB_USER'),
+        password=os.environ.get('DB_PASSWORD'),
+        host=os.environ.get('DB_HOST'),
+        port=os.environ.get('DB_PORT')
+    )
+
 def get_db():
     """Application Context 내에서 유일한 DB 연결을 가져옵니다."""
     if 'db' not in g:
-        # For production environments like Render, DATABASE_URL is the primary connection string.
-        # For local development, the fallback to individual variables is used.
-        database_url = os.environ.get('DATABASE_URL')
-        if database_url:
-            g.db = psycopg2.connect(database_url)
-        else:
-            # Ensure all required variables are present for local connection
-            if not all(os.environ.get(var) for var in ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']):
-                raise ValueError("For local development, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, and DB_PORT must be set.")
-            g.db = psycopg2.connect(
-                dbname=os.environ.get('DB_NAME'),
-                user=os.environ.get('DB_USER'),
-                password=os.environ.get('DB_PASSWORD'),
-                host=os.environ.get('DB_HOST'),
-                port=os.environ.get('DB_PORT')
-            )
+        g.db = _create_connection()
     return g.db
 
 def get_cursor(db):
@@ -39,19 +46,7 @@ def close_db(exception=None):
 
 def create_standalone_connection():
     """Flask 컨텍스트 없이 독립적인 DB 연결을 생성합니다."""
-    database_url = os.environ.get('DATABASE_URL')
-    if database_url:
-        return psycopg2.connect(database_url)
-    else:
-        if not all(os.environ.get(var) for var in ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']):
-            raise ValueError("For local development, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, and DB_PORT must be set.")
-        return psycopg2.connect(
-            dbname=os.environ.get('DB_NAME'),
-            user=os.environ.get('DB_USER'),
-            password=os.environ.get('DB_PASSWORD'),
-            host=os.environ.get('DB_HOST'),
-            port=os.environ.get('DB_PORT')
-        )
+    return _create_connection()
 
 def setup_database_standalone():
     """독립 실행형 스크립트에서 테이블을 생성합니다."""

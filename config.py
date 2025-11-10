@@ -1,4 +1,5 @@
 # config.py
+import os
 
 # --- Crawler ---
 CRAWLER_HEADERS = {
@@ -18,3 +19,7 @@ WEEKDAYS = {
     'daily': 'daily',
     'dailyPlus': 'daily'
 }
+
+# --- Email ---
+SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
