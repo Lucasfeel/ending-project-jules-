@@ -34,6 +34,12 @@
     </header>
 
     <main class="container mx-auto p-4 md:p-8">
+        <div id="mainTabContainer" class="mb-4">
+            <div class="flex space-x-4">
+                <button data-content-type="webtoon" class="main-tab-button active">웹툰</button>
+                <button data-content-type="novel" class="main-tab-button">웹소설</button>
+            </div>
+        </div>
         <div id="tabContainer" class="mb-6 overflow-x-auto"><div class="flex space-x-2 border-b border-gray-700"></div></div>
         <div id="webtoonListContainer"></div>
         <div id="paginationContainer" class="text-center py-8"></div>
@@ -89,12 +95,16 @@
                 toast: document.getElementById('toast'),
             };
 
-            const TABS = { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일', daily: '매일+', hiatus: '휴재', completed: '완결' };
+            const TABS = {
+                webtoon: { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일', daily: '매일+', hiatus: '휴재', completed: '완결' },
+                novel: { latest: '최신순', popular: '인기순', completed: '완결' }
+            };
 
             const state = {
+                activeContentType: 'webtoon',
                 activeTab: 'mon',
                 currentTitleId: null,
-                currentSource: null, // 🚨 [추가]
+                currentSource: null,
                 searchTimeout: null,
                 isSearching: false,
                 searchResults: [],
@@ -129,11 +139,13 @@
 
                 try {
                     let url;
+                    const typeParam = `type=${state.activeContentType}`;
+
                     if (isPaginated) {
                         const cursor = state.pagination[tabKey].nextCursor;
-                        url = cursor ? `/api/contents/${tabKey}?last_title=${encodeURIComponent(cursor)}` : `/api/contents/${tabKey}`;
+                        url = cursor ? `/api/contents/${tabKey}?${typeParam}&last_title=${encodeURIComponent(cursor)}` : `/api/contents/${tabKey}?${typeParam}`;
                     } else {
-                        url = `/api/contents/ongoing`;
+                        url = `/api/contents/ongoing?${typeParam}`;
                     }
 
                     const response = await fetch(url);
@@ -162,14 +174,21 @@
 
             function renderTabs() {
                 UI.tabContainer.innerHTML = '';
-                Object.entries(TABS).forEach(([key, value]) => {
-                    const button = document.createElement('button');
-                    button.className = `tab-button px-4 py-2 text-sm font-bold rounded-t-lg whitespace-nowrap ${state.activeTab === key ? 'active' : 'text-gray-400 hover:bg-gray-800'}`;
-                    button.textContent = value;
-                    button.dataset.tab = key;
-                    button.addEventListener('click', () => handleTabClick(key));
-                    UI.tabContainer.appendChild(button);
-                });
+                const currentTabs = TABS[state.activeContentType] || {};
+
+                if (state.activeContentType === 'webtoon') {
+                    UI.tabContainer.parentElement.style.display = 'block';
+                    Object.entries(currentTabs).forEach(([key, value]) => {
+                        const button = document.createElement('button');
+                        button.className = `tab-button px-4 py-2 text-sm font-bold rounded-t-lg whitespace-nowrap ${state.activeTab === key ? 'active' : 'text-gray-400 hover:bg-gray-800'}`;
+                        button.textContent = value;
+                        button.dataset.tab = key;
+                        button.addEventListener('click', () => handleTabClick(key));
+                        UI.tabContainer.appendChild(button);
+                    });
+                } else {
+                    UI.tabContainer.parentElement.style.display = 'none';
+                }
             }
 
             async function handleTabClick(tabKey) {
@@ -202,8 +221,8 @@
 
                 // === 🚨 [스키마 표준화] ===
                 // 'authors' 리스트를 안전하게 읽어와 쉼표(,)로 연결합니다.
-                const authorsText = (webtoon.meta.authors && webtoon.meta.authors.length > 0)
-                                    ? webtoon.meta.authors.join(', ')
+                const authorsText = (webtoon.meta.common && webtoon.meta.common.authors && webtoon.meta.common.authors.length > 0)
+                                    ? webtoon.meta.common.authors.join(', ')
                                     : '작가 정보 없음';
                 // =========================
 
@@ -238,15 +257,16 @@
                     } else {
                         listToRender = state.cache.ongoing?.[state.activeTab] || [];
                     }
-                    UI.tabContainer.parentElement.style.display = 'block';
+                    renderTabs(); // Re-render tabs to ensure visibility is correct
                     UI.paginationContainer.style.display = 'block';
                 }
 
                 if (!listToRender || listToRender.length === 0) {
                     // 로딩 중이 아닐 때만 '결과 없음' 메시지 표시
-                    const isLoading = state.isSearching || state.pagination[state.activeTab]?.isLoading;
+                    const isLoading = state.isSearching || (state.pagination[state.activeTab] && state.pagination[state.activeTab].isLoading);
                     if (!isLoading) {
-                        showStatus(state.isSearching ? '검색 결과가 없습니다.' : `'${TABS[state.activeTab]}' 목록이 비어있습니다.`);
+                        const tabName = TABS[state.activeContentType]?.[state.activeTab] || state.activeTab;
+                        showStatus(state.isSearching ? '검색 결과가 없습니다.' : `'${tabName}' 목록이 비어있습니다.`);
                     }
                     return;
                 }
@@ -293,7 +313,7 @@
                 showStatus('loading');
 
                 try {
-                    const response = await fetch(`/api/contents/search?q=${encodeURIComponent(searchTerm)}`);
+                    const response = await fetch(`/api/contents/search?q=${encodeURIComponent(searchTerm)}&type=${state.activeContentType}`);
                     if (!response.ok) throw new Error('Search API Error');
                     state.searchResults = await response.json();
                     renderWebtoonList();
@@ -369,6 +389,21 @@
             }
 
             function initialize() {
+                document.querySelectorAll('.main-tab-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        state.activeContentType = button.dataset.contentType;
+                        document.querySelectorAll('.main-tab-button').forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+
+                        // 콘텐츠 타입에 맞는 첫 번째 탭으로 초기화
+                        const currentTabs = TABS[state.activeContentType] || {};
+                        state.activeTab = Object.keys(currentTabs)[0];
+
+                        renderTabs();
+                        handleTabClick(state.activeTab);
+                    });
+                });
+
                 // [핵심 수정] 검색 입력 시 서버에 검색 요청 (디바운싱 적용)
                 UI.searchInput.addEventListener('input', () => {
                     clearTimeout(state.searchTimeout);
