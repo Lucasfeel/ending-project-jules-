@@ -93,6 +93,51 @@
         </div>
     </nav>
 
+    <!-- Full Screen Search Modal -->
+    <div id="searchModal" class="fixed inset-0 z-[100] bg-bg-default hidden flex-col">
+        <div class="flex items-center gap-3 px-4 h-[56px] border-b border-[#2D2D2D]">
+            <button onclick="closeSearch()" class="text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+            </button>
+            <div class="flex-1 relative">
+                <input type="text" placeholder="작품명, 작가명 검색" class="w-full bg-bg-elevated text-white rounded-full py-2 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-primary-main placeholder-text-gray">
+                <button class="absolute right-3 top-1/2 -translate-y-1/2 text-text-gray hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4">
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-white mb-3">최근 검색어</h3>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1.5 rounded-full bg-bg-elevated text-text-gray text-xs">나 혼자만 레벨업</span>
+                    <span class="px-3 py-1.5 rounded-full bg-bg-elevated text-text-gray text-xs">전지적 독자 시점</span>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-white mb-3">실시간 인기 검색어</h3>
+                <ol class="space-y-3">
+                    <li class="flex items-center gap-3 text-sm">
+                        <span class="text-primary-main font-bold w-4">1</span>
+                        <span class="text-text-gray">화산귀환</span>
+                    </li>
+                    <li class="flex items-center gap-3 text-sm">
+                        <span class="text-primary-main font-bold w-4">2</span>
+                        <span class="text-text-gray">외모지상주의</span>
+                    </li>
+                     <li class="flex items-center gap-3 text-sm">
+                        <span class="text-primary-main font-bold w-4">3</span>
+                        <span class="text-text-gray">신의 탑</span>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals -->
     <div id="subscribeModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" id="modalBackdrop"></div>
@@ -172,7 +217,7 @@
 
             const GRID_CONFIG = {
                 webtoon: { cols: 'grid-cols-3', aspect: 'aspect-[3/4]' },
-                novel: { cols: 'grid-cols-2', aspect: 'aspect-[1.5/1]' }, // Changed for large gradient cards
+                novel: { cols: 'grid-cols-3', aspect: 'aspect-[1/1.45]' }, // UPDATED: 3 Cols, Vertical Ratio
                 ott: { cols: 'grid-cols-3', aspect: 'aspect-[2/3]' },
                 series: { cols: 'grid-cols-3', aspect: 'aspect-[3/4]' },
                 my: { cols: 'grid-cols-3', aspect: 'aspect-[3/4]' }
@@ -219,7 +264,8 @@
                 cancelButton: document.getElementById('cancelButton'),
                 toast: document.getElementById('toast'),
                 homeButton: document.getElementById('homeButton'),
-                searchButton: document.getElementById('searchButton')
+                searchButton: document.getElementById('searchButton'),
+                searchModal: document.getElementById('searchModal')
             };
 
             // --- Initialization ---
@@ -230,7 +276,17 @@
                 UI.cancelButton.onclick = closeModal;
                 UI.modalBackdrop.onclick = closeModal;
                 UI.subscribeButton.onclick = handleSubscribe;
-                UI.searchButton.onclick = () => showToast('검색 기능 준비중입니다.');
+                UI.searchButton.onclick = openSearch; // UPDATED: Bind to openSearch
+            }
+
+            // Global search functions to access from HTML
+            window.openSearch = function() {
+                UI.searchModal.classList.remove('hidden');
+                UI.searchModal.classList.add('flex');
+            }
+            window.closeSearch = function() {
+                UI.searchModal.classList.remove('flex');
+                UI.searchModal.classList.add('hidden');
             }
 
             // --- Core Logic ---
@@ -471,13 +527,17 @@
                 }
 
                 if (tab === 'novel') {
-                    // Gradient Card for Novel
+                    // UPDATED: Standard Card Layout but with Gradient Placeholder instead of Image
                     const gradientClass = GRADIENTS[index % GRADIENTS.length];
                     card.innerHTML = `
-                        <div class="${aspectClass} rounded-2xl overflow-hidden ${gradientClass} relative mb-2 p-4 flex items-center justify-center text-center shadow-lg transform transition-transform group-hover:scale-[1.02]">
-                            <div class="absolute inset-0 bg-black/10"></div>
+                        <div class="${aspectClass} rounded-xl overflow-hidden ${gradientClass} relative mb-2 shadow-md flex items-center justify-center p-2">
+                             <!-- Fallback for no image: Just the gradient -->
+                             <span class="text-white/20 font-black text-4xl select-none">N</span>
                             ${badgeHtml}
-                            <h3 class="text-white font-black text-lg break-words z-10 drop-shadow-md leading-snug">${content.title}</h3>
+                        </div>
+                        <div class="px-0.5">
+                            <h3 class="text-[13px] font-bold text-white truncate leading-tight">${content.title}</h3>
+                            <p class="text-[11px] font-medium text-text-gray truncate mt-0.5">${content.meta?.common?.authors?.join(', ') || 'Unknown'}</p>
                         </div>
                     `;
                 } else {
