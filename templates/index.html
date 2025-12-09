@@ -10,10 +10,12 @@
         body { font-family: 'Pretendard', sans-serif; background-color: #121212; color: #ffffff; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .glass-effect { background-color: rgba(18, 18, 18, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .glass-effect { background-color: rgba(18, 18, 18, 0.90); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
-        /* Smooth transition for toggle */
         .toggle-slide { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Platform Logo Styles */
+        .platform-logo { font-family: 'Pretendard', sans-serif; font-weight: 900; letter-spacing: -0.5px; }
     </style>
     <script>
         tailwind.config = {
@@ -25,6 +27,9 @@
                         point: { yellow: '#FACC15' },
                         status: { success: '#16A34A', danger: '#DC2626', gray: '#4B5563' },
                         text: { gray: '#A0A0A0', dark: '#555555' }
+                    },
+                    boxShadow: {
+                        'glow': '0 0 10px rgba(250, 204, 21, 0.5)'
                     }
                 }
             }
@@ -35,20 +40,22 @@
 
     <!-- Layer 3: Global Header -->
     <header class="fixed top-0 left-0 right-0 h-[56px] glass-effect z-50 flex justify-between items-center px-4 border-b border-[#2D2D2D]">
-        <div id="homeButton" class="flex items-center cursor-pointer gap-1" onclick="window.scrollTo(0,0); location.reload()">
-            <h1 class="text-[22px] font-black tracking-tighter text-white">EN</h1>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-point-yellow">
-                <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clip-rule="evenodd" />
-            </svg>
+        <div id="homeButton" class="flex items-center cursor-pointer gap-2" onclick="window.scrollTo(0,0); location.reload()">
+            <h1 class="text-[24px] font-black tracking-tighter text-white">EN</h1>
+            <div class="relative">
+                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-point-yellow drop-shadow-md">
+                    <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clip-rule="evenodd" />
+                </svg>
+            </div>
         </div>
-        <div class="flex items-center gap-3">
-            <button id="searchButton" class="text-white p-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+        <div class="flex items-center gap-4">
+            <button id="searchButton" class="text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
             </button>
-            <button id="profileButton" class="text-white p-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+            <button id="profileButton" class="text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
             </button>
@@ -59,17 +66,17 @@
     <main class="w-full max-w-[480px] mx-auto pt-[56px] pb-[80px] min-h-screen relative">
 
         <!-- Layer 2: Sticky Filter Container -->
-        <div id="stickyFilterContainer" class="sticky top-[56px] z-40 bg-bg-default/95 backdrop-blur-sm transition-all duration-300">
+        <div id="stickyFilterContainer" class="sticky top-[56px] z-40 bg-bg-default/95 backdrop-blur-sm transition-all duration-300 border-b border-[#2D2D2D]">
             <!-- L1 Filter (Logos) -->
-            <div id="l1FilterContainer" class="hide-scrollbar overflow-x-auto whitespace-nowrap px-4 py-2 flex gap-3 items-center min-h-[60px] hidden"></div>
+            <div id="l1FilterContainer" class="hide-scrollbar overflow-x-auto whitespace-nowrap px-4 py-3 flex gap-3 items-center min-h-[64px] hidden"></div>
             <!-- L2 Filter (Tabs) -->
-            <div id="l2FilterContainer" class="hide-scrollbar overflow-x-auto whitespace-nowrap px-4 border-b border-[#2D2D2D] flex gap-4 items-center h-[40px] hidden"></div>
+            <div id="l2FilterContainer" class="hide-scrollbar overflow-x-auto whitespace-nowrap px-4 flex gap-6 items-center h-[44px] hidden"></div>
             <!-- My Tab Control (Segmented) -->
             <div id="myTabControlContainer" class="px-4 py-2 hidden h-[56px] flex items-center justify-center"></div>
         </div>
 
         <!-- Content Grid -->
-        <div id="contentGridContainer" class="px-4 mt-4 grid gap-3"></div>
+        <div id="contentGridContainer" class="px-4 mt-5 grid gap-x-3 gap-y-6"></div>
 
         <!-- Pagination / Footer Actions -->
         <div id="paginationContainer" class="px-4 py-6"></div>
@@ -89,19 +96,19 @@
     <!-- Modals -->
     <div id="subscribeModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" id="modalBackdrop"></div>
-        <div class="relative bg-bg-card rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="relative bg-bg-card rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-[#333]">
             <h2 class="text-xl font-bold text-white mb-2">완결 알림 받기</h2>
-            <p id="modalWebtoonTitle" class="text-text-gray text-sm mb-4"></p>
-            <input type="email" id="emailInput" placeholder="이메일 주소" class="w-full bg-bg-elevated text-white rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary-main outline-none mb-2">
+            <p id="modalWebtoonTitle" class="text-text-gray text-sm mb-4 line-clamp-2"></p>
+            <input type="email" id="emailInput" placeholder="이메일 주소" class="w-full bg-bg-elevated text-white rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary-main outline-none mb-2 placeholder-gray-600">
             <p id="emailError" class="text-status-danger text-xs h-4 mb-2"></p>
             <div class="flex justify-end gap-2">
                 <button id="cancelButton" class="px-4 py-2 rounded-lg bg-[#3a3a3c] text-gray-300 text-sm font-medium">취소</button>
-                <button id="subscribeButton" class="px-4 py-2 rounded-lg bg-primary-main text-white text-sm font-bold">구독하기</button>
+                <button id="subscribeButton" class="px-4 py-2 rounded-lg bg-primary-main text-white text-sm font-bold shadow-lg shadow-primary-main/30">구독하기</button>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full bg-bg-elevated text-white text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-[110]"></div>
+    <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 px-5 py-2.5 rounded-full bg-[#333] border border-[#444] text-white text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none z-[110] shadow-xl"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -111,16 +118,17 @@
                 novel: { label: 'Web Novel', icon: '<path d="M4 6h16v12H4z"/>' },
                 ott: { label: 'OTT', icon: '<path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>' },
                 series: { label: 'Series', icon: '<path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>' },
-                my: { label: 'My', icon: '<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>' }
+                my: { label: 'My Sub', icon: '<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>' }
             };
 
             const FILTER_DATA = {
                 webtoon: {
                     l1: [
-                        { id: 'all', label: '전체', color: '#555555' },
-                        { id: 'naver', label: 'N', color: '#00DC64' },
-                        { id: 'kakao', label: 'K', color: '#FACC15' },
-                        { id: 'lezhin', label: 'L', color: '#EC1C24' }
+                        { id: 'all', label: 'ALL', bg: '#333333', text: '#fff' },
+                        { id: 'naver', label: 'N', bg: '#00DC64', text: '#fff' },
+                        { id: 'kakao', label: 'K', bg: '#FACC15', text: '#000' },
+                        { id: 'kakao_page', label: 'P', bg: '#FFCD00', text: '#000' },
+                        { id: 'lezhin', label: 'L', bg: '#EC1C24', text: '#fff' }
                     ],
                     l2: [
                         { id: 'mon', label: 'Mon' }, { id: 'tue', label: 'Tue' }, { id: 'wed', label: 'Wed' },
@@ -130,10 +138,10 @@
                 },
                 novel: {
                     l1: [
-                        { id: 'all', label: '전체', color: '#555555' },
-                        { id: 'naver', label: 'N', color: '#00DC64' },
-                        { id: 'kakao', label: 'P', color: '#FACC15' },
-                        { id: 'ridi', label: 'R', color: '#0077FF' }
+                        { id: 'all', label: 'ALL', bg: '#333333', text: '#fff' },
+                        { id: 'naver', label: 'N', bg: '#00DC64', text: '#fff' },
+                        { id: 'kakao', label: 'K', bg: '#FACC15', text: '#000' },
+                        { id: 'ridi', label: 'R', bg: '#0077FF', text: '#fff' }
                     ],
                     l2: [
                         { id: 'ranking', label: 'Ranking' }, { id: 'new', label: 'New' }, { id: 'completed', label: 'Completed' }
@@ -141,10 +149,10 @@
                 },
                 ott: {
                     l1: [
-                        { id: 'all', label: '전체', color: '#555555' },
-                        { id: 'netflix', label: 'N', color: '#E50914' },
-                        { id: 'disney', label: 'D', color: '#113CCF' },
-                        { id: 'tving', label: 'T', color: '#FF143C' }
+                        { id: 'all', label: 'ALL', bg: '#333333', text: '#fff' },
+                        { id: 'netflix', label: 'N', bg: '#E50914', text: '#fff' },
+                        { id: 'disney', label: 'D', bg: '#113CCF', text: '#fff' },
+                        { id: 'tving', label: 'T', bg: '#FF143C', text: '#fff' }
                     ],
                     l2: [
                         { id: 'all', label: 'All' }, { id: 'action', label: 'Action' }, { id: 'romance', label: 'Romance' },
@@ -152,23 +160,32 @@
                     ]
                 },
                 series: {
-                    l1: [], // No L1
+                    l1: [],
                     l2: [
                         { id: 'latest', label: 'Latest' }, { id: 'alpha', label: 'Alpha' }
                     ]
                 },
                 my: {
-                    l1: [], l2: [] // Custom Control
+                    l1: [], l2: []
                 }
             };
 
             const GRID_CONFIG = {
                 webtoon: { cols: 'grid-cols-3', aspect: 'aspect-[3/4]' },
-                novel: { cols: 'grid-cols-3', aspect: 'aspect-[1/1.45]' },
+                novel: { cols: 'grid-cols-2', aspect: 'aspect-[1.5/1]' }, // Changed for large gradient cards
                 ott: { cols: 'grid-cols-3', aspect: 'aspect-[2/3]' },
                 series: { cols: 'grid-cols-3', aspect: 'aspect-[3/4]' },
                 my: { cols: 'grid-cols-3', aspect: 'aspect-[3/4]' }
             };
+
+            const GRADIENTS = [
+                'bg-gradient-to-br from-green-500 to-emerald-700',
+                'bg-gradient-to-br from-pink-500 to-rose-700',
+                'bg-gradient-to-br from-purple-500 to-indigo-700',
+                'bg-gradient-to-br from-orange-400 to-amber-600',
+                'bg-gradient-to-br from-blue-500 to-cyan-600',
+                'bg-gradient-to-br from-teal-400 to-green-600'
+            ];
 
             const state = {
                 activeTab: 'webtoon',
@@ -208,36 +225,31 @@
             // --- Initialization ---
             function initialize() {
                 renderBottomNav();
-                updateUI(); // Initial render
+                updateUI();
 
-                // Event Listeners for Modal
                 UI.cancelButton.onclick = closeModal;
                 UI.modalBackdrop.onclick = closeModal;
                 UI.subscribeButton.onclick = handleSubscribe;
-                UI.searchButton.onclick = () => showToast('검색 기능 준비중입니다.'); // Temporary
+                UI.searchButton.onclick = () => showToast('검색 기능 준비중입니다.');
             }
 
             // --- Core Logic ---
             async function updateUI() {
                 renderFilters();
-                renderContentGrid(); // Render skeleton or existing data
+                renderContentGrid(); // Render skeleton/old data
 
-                // Fetch data if needed
                 if (shouldFetchData()) {
                     await fetchData();
                 }
 
-                renderContentGrid(); // Re-render with data
+                renderContentGrid(); // Render fresh data
             }
 
-            function shouldFetchData() {
-                // Implement caching logic later if needed
-                return true;
-            }
+            function shouldFetchData() { return true; }
 
             async function fetchData() {
                 state.isLoading = true;
-                UI.statusIndicator.innerHTML = '<div class="text-primary-main text-sm">Loading...</div>';
+                UI.statusIndicator.innerHTML = '<div class="flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-main"></div></div>';
 
                 const { activeTab } = state;
                 const filter = state.filters[activeTab];
@@ -266,7 +278,7 @@
                         }
                     } else {
                         // Dummy Data Generation for other tabs
-                        await new Promise(r => setTimeout(r, 500)); // Simulate delay
+                        await new Promise(r => setTimeout(r, 400));
                         state.contents[activeTab][getKey()] = generateDummyData(activeTab);
                     }
                 } catch (e) {
@@ -299,10 +311,10 @@
                 Object.keys(TABS).forEach(tabId => {
                     const btn = document.createElement('button');
                     const isActive = state.activeTab === tabId;
-                    btn.className = `flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${isActive ? 'text-white' : 'text-text-dark'}`;
+                    btn.className = `flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${isActive ? 'text-white' : 'text-text-dark hover:text-text-gray'}`;
                     btn.innerHTML = `
-                        <svg class="w-6 h-6 mb-1 ${isActive ? 'scale-110 text-primary-main' : ''} transition-transform" fill="currentColor" viewBox="0 0 24 24">${TABS[tabId].icon}</svg>
-                        <span class="text-[10px] ${isActive ? 'font-bold' : 'font-medium'}">${TABS[tabId].label}</span>
+                        <svg class="w-6 h-6 mb-1 ${isActive ? 'text-white' : 'text-[#555]'} transition-colors" fill="currentColor" viewBox="0 0 24 24">${TABS[tabId].icon}</svg>
+                        <span class="text-[10px] ${isActive ? 'font-bold text-white' : 'font-medium text-[#555]'}">${TABS[tabId].label}</span>
                     `;
                     btn.onclick = () => {
                         state.activeTab = tabId;
@@ -328,9 +340,9 @@
                     filters.l1.forEach(item => {
                         const btn = document.createElement('div');
                         const isActive = currentFilters.provider === item.id;
-                        btn.className = `flex-shrink-0 w-[42px] h-[42px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${isActive ? 'ring-2 ring-primary-main opacity-100' : 'opacity-50 grayscale'}`;
-                        btn.style.backgroundColor = '#2C2C2C'; // elevated bg
-                        btn.innerHTML = `<span class="font-black text-sm" style="color:${item.color}">${item.label}</span>`;
+                        btn.className = `flex-shrink-0 w-[48px] h-[48px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 border-2 ${isActive ? 'border-white scale-105' : 'border-transparent opacity-80 hover:opacity-100'}`;
+                        btn.style.backgroundColor = item.bg;
+                        btn.innerHTML = `<span class="platform-logo text-base" style="color:${item.text}">${item.label}</span>`;
                         btn.onclick = () => {
                             state.filters[activeTab].provider = item.id;
                             renderFilters();
@@ -352,12 +364,15 @@
 
                     filters.l2.forEach(item => {
                         const btn = document.createElement('button');
-                        // Find active key (day, sort, genre)
                         const activeKey = currentFilters.day || currentFilters.sort || currentFilters.genre;
                         const isActive = activeKey === item.id;
 
-                        btn.className = `px-1 h-full flex items-center text-sm font-medium transition-colors border-b-2 ${isActive ? 'text-white border-primary-main font-bold' : 'text-text-gray border-transparent hover:text-white'}`;
-                        btn.textContent = item.label;
+                        // New Tab Style: Text only with dot or slight boldness, no underline or simple underline
+                        btn.className = `px-3 h-full flex items-center text-[15px] transition-all relative ${isActive ? 'text-white font-bold' : 'text-text-dark font-medium hover:text-text-gray'}`;
+                        btn.innerHTML = `
+                            ${item.label}
+                            ${isActive ? '<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>' : ''}
+                        `;
 
                         btn.onclick = () => {
                             if (currentFilters.day) state.filters[activeTab].day = item.id;
@@ -375,24 +390,24 @@
             function renderMyTabControl() {
                 UI.myTabControlContainer.innerHTML = '';
                 const container = document.createElement('div');
-                container.className = 'w-full h-[40px] bg-bg-card rounded-lg relative flex p-1 cursor-pointer';
+                container.className = 'w-full h-[44px] bg-bg-elevated rounded-full relative flex p-1 cursor-pointer';
 
                 const currentMode = state.filters.my.viewMode;
                 const isSub = currentMode === 'subscribing';
 
                 // Background slider
                 const slider = document.createElement('div');
-                slider.className = `absolute top-1 bottom-1 w-[calc(50%-4px)] bg-bg-elevated rounded md:rounded-md transition-transform duration-300 ${isSub ? 'translate-x-0' : 'translate-x-full left-[4px]'}`;
+                slider.className = `absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#444] rounded-full shadow-md transition-transform duration-300 ${isSub ? 'translate-x-0' : 'translate-x-full left-[4px]'}`;
                 container.appendChild(slider);
 
                 const btn1 = document.createElement('div');
-                btn1.className = `flex-1 z-10 flex items-center justify-center text-sm font-bold transition-colors ${isSub ? 'text-white' : 'text-text-gray'}`;
+                btn1.className = `flex-1 z-10 flex items-center justify-center text-sm font-bold transition-colors ${isSub ? 'text-white' : 'text-[#888]'}`;
                 btn1.textContent = '구독중';
                 btn1.onclick = () => { state.filters.my.viewMode = 'subscribing'; renderMyTabControl(); updateUI(); };
 
                 const btn2 = document.createElement('div');
-                btn2.className = `flex-1 z-10 flex items-center justify-center text-sm font-bold transition-colors ${!isSub ? 'text-white' : 'text-text-gray'}`;
-                btn2.textContent = '최근 본';
+                btn2.className = `flex-1 z-10 flex items-center justify-center text-sm font-bold transition-colors ${!isSub ? 'text-white' : 'text-[#888]'}`;
+                btn2.textContent = '완결됨';
                 btn2.onclick = () => { state.filters.my.viewMode = 'completed'; renderMyTabControl(); updateUI(); };
 
                 container.appendChild(btn1);
@@ -410,24 +425,24 @@
                 const data = state.contents[activeTab][getKey()] || [];
 
                 if (data.length === 0 && !state.isLoading) {
-                     UI.contentGridContainer.innerHTML = '<div class="col-span-3 text-center py-20 text-text-gray text-sm">콘텐츠가 없습니다.</div>';
+                     UI.contentGridContainer.innerHTML = '<div class="col-span-full text-center py-20 text-text-gray text-sm">콘텐츠가 없습니다.</div>';
                 } else {
-                    data.forEach(content => {
-                        UI.contentGridContainer.appendChild(createContentCard(content, activeTab));
+                    data.forEach((content, idx) => {
+                        UI.contentGridContainer.appendChild(createContentCard(content, activeTab, idx));
                     });
                 }
 
                 // Series Footer Button
                 if (activeTab === 'series') {
                     const footerBtn = document.createElement('button');
-                    footerBtn.className = 'w-full h-[56px] mt-6 bg-bg-card border border-dashed border-text-dark rounded-xl text-text-gray text-sm font-medium hover:bg-bg-elevated hover:text-white transition-colors flex items-center justify-center';
+                    footerBtn.className = 'w-full h-[56px] mt-6 bg-bg-card border border-dashed border-[#444] rounded-xl text-text-gray text-sm font-medium hover:bg-bg-elevated hover:text-white transition-colors flex items-center justify-center';
                     footerBtn.textContent = '(+) 당신의 시리즈를 추가해주세요';
                     footerBtn.onclick = () => window.open('https://forms.gle/HHhRRxZdE8g4x6nm9', '_blank');
                     UI.paginationContainer.appendChild(footerBtn);
                 }
             }
 
-            function createContentCard(content, tab) {
+            function createContentCard(content, tab, index) {
                 const card = document.createElement('div');
                 card.className = 'relative group cursor-pointer flex flex-col';
 
@@ -436,33 +451,50 @@
 
                 // Badge Logic
                 let badgeHtml = '';
-                if (content.status === '완결') badgeHtml = `<span class="absolute top-1 left-1 bg-status-success text-white text-[9px] font-black px-1.5 py-0.5 rounded">완결</span>`;
-                else if (content.status === '휴재') badgeHtml = `<span class="absolute top-1 left-1 bg-status-gray text-white text-[9px] font-black px-1.5 py-0.5 rounded">휴재</span>`;
-                // Add UP logic if data has updated_at check or similar. Skipping for now as mostly status driven.
+                if (content.status === '완결') badgeHtml = `<span class="absolute top-1 left-1 bg-status-success/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">완결</span>`;
+                else if (content.status === '휴재') badgeHtml = `<span class="absolute top-1 left-1 bg-status-gray/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">휴재</span>`;
 
                 // My Tab Bell Toggle
                 let bellOverlay = '';
                 if (tab === 'my') {
+                     // Toggle Switch Look
                      bellOverlay = `
-                        <div class="absolute top-1 right-1 bg-black/60 backdrop-blur px-2 py-1 rounded-full flex items-center gap-1 z-20" onclick="event.stopPropagation(); toggleSubscribe('${content.content_id}')">
-                            <span class="text-[10px] text-point-yellow">🔔</span>
-                            <span class="text-[9px] text-white font-bold">ON</span>
+                        <div class="absolute top-2 right-2 flex items-center z-20" onclick="event.stopPropagation(); toggleSubscribe('${content.content_id}')">
+                            <div class="bg-point-yellow text-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-glow cursor-pointer hover:bg-yellow-300 transition-colors">
+                                <span class="text-[10px] font-black">ON</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
+                                  <path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
                         </div>
                      `;
                 }
 
-                card.innerHTML = `
-                    <div class="${aspectClass} rounded-lg overflow-hidden bg-bg-card relative mb-2">
-                        <img src="${thumbnailUrl}" alt="${content.title}" loading="lazy" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
-                        ${badgeHtml}
-                        ${bellOverlay}
-                    </div>
-                    <div class="px-0.5">
-                        <h3 class="text-[13px] font-bold text-white truncate leading-tight">${content.title}</h3>
-                        <p class="text-[11px] font-medium text-text-gray truncate mt-1">${content.meta?.common?.authors?.join(', ') || 'Unknown'}</p>
-                    </div>
-                `;
+                if (tab === 'novel') {
+                    // Gradient Card for Novel
+                    const gradientClass = GRADIENTS[index % GRADIENTS.length];
+                    card.innerHTML = `
+                        <div class="${aspectClass} rounded-2xl overflow-hidden ${gradientClass} relative mb-2 p-4 flex items-center justify-center text-center shadow-lg transform transition-transform group-hover:scale-[1.02]">
+                            <div class="absolute inset-0 bg-black/10"></div>
+                            ${badgeHtml}
+                            <h3 class="text-white font-black text-lg break-words z-10 drop-shadow-md leading-snug">${content.title}</h3>
+                        </div>
+                    `;
+                } else {
+                    // Standard Image Card
+                    card.innerHTML = `
+                        <div class="${aspectClass} rounded-xl overflow-hidden bg-bg-card relative mb-2 shadow-md">
+                            <img src="${thumbnailUrl}" alt="${content.title}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+                            ${badgeHtml}
+                            ${bellOverlay}
+                        </div>
+                        <div class="px-0.5">
+                            <h3 class="text-[13px] font-bold text-white truncate leading-tight">${content.title}</h3>
+                            <p class="text-[11px] font-medium text-text-gray truncate mt-0.5">${content.meta?.common?.authors?.join(', ') || 'Unknown'}</p>
+                        </div>
+                    `;
+                }
 
                 card.onclick = () => openModal(content);
                 return card;
@@ -496,7 +528,7 @@
             }
 
             function toggleSubscribe(id) {
-                showToast('구독 상태가 변경되었습니다.');
+                showToast('알림 설정이 변경되었습니다.');
             }
 
             function showToast(msg) {
