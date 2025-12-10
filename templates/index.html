@@ -184,8 +184,8 @@
                     <p id="emailError" class="text-red-500 text-xs mt-1 h-4"></p>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button id="cancelButton" class="px-4 py-2 rounded-lg bg-[#3a3a3c] text-gray-300 text-sm font-medium spring-bounce">취소</button>
-                    <button id="subscribeButton" class="px-4 py-2 rounded-lg bg-[#4f46e5] text-white text-sm font-bold spring-bounce neon-glow">구독하기</button>
+                    <button id="cancelButton" onclick="closeModal()" class="px-4 py-2 rounded-lg bg-[#3a3a3c] text-gray-300 text-sm font-medium spring-bounce">취소</button>
+                    <button id="subscribeButton" onclick="submitSubscription()" class="px-4 py-2 rounded-lg bg-[#4f46e5] text-white text-sm font-bold spring-bounce neon-glow">구독하기</button>
                 </div>
             </div>
         </div>
@@ -193,7 +193,6 @@
     </div>
 
     <script>
-    {% raw %}
         const ICONS = {
             webtoon: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M21 4H3C1.9 4 1 4.9 1 6v13c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM3 19V6h8v13H3zm18 0h-8V6h8v13z"/></svg>`, // Open Book approximation
             novel: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7.127 22.562l-7.127 1.438 1.438-7.128 5.689 5.69zm1.414-1.414l11.228-11.225-5.69-5.692-11.227 11.227 5.689 5.69zm9.768-21.148l-2.816 2.817 5.691 5.691 2.816-2.819-5.691-5.689z"/></svg>`, // Feather Pen approximation
@@ -206,13 +205,14 @@
             activeTab: 'webtoon',
             filters: {
                 webtoon: { source: 'all', day: 'mon' },
-                novel: { source: 'all', day: 'mon' }, // Changed to day based on PRD
+                novel: { source: 'all', day: 'mon' },
                 ott: { source: 'all', genre: 'drama' },
                 series: { sort: 'latest' },
                 my: { viewMode: 'subscribing' }
             },
             contents: {},
-            isLoading: false
+            isLoading: false,
+            currentModalContent: null
         };
 
         const UI = {
@@ -314,11 +314,11 @@
 
             if (tabId === 'webtoon') {
                 items = [
-                    { id: 'all', label: '전체' },
-                    { id: 'naver', label: 'N' },
-                    { id: 'kakao', label: 'K' },
-                    { id: 'lezhin', label: 'L' },
-                    { id: 'laftel', label: 'R' }
+                    { id: 'all', label: '전체', color: '#A3A3A3' },
+                    { id: 'naver_webtoon', label: 'N', color: '#00D564' },
+                    { id: 'kakaowebtoon', label: 'K', color: '#F7E600' },
+                    { id: 'lezhin', label: 'L', color: '#E62E2E' },
+                    { id: 'laftel', label: 'R', color: '#6C5CE7' }
                 ];
             } else if (tabId === 'novel') {
                  // Series(Green), Kakao(Yellow), Ridi(Blue), Munpia
@@ -418,7 +418,7 @@
             STATE.isLoading = true;
 
             // Show Skeleton
-            for(let i=0; i<9; i++) {
+            for(i=0; i<9; i++) {
                 const skel = document.createElement('div');
                 skel.className = 'aspect-[3/4] rounded-lg skeleton'; // Default aspect
                 UI.contentGrid.appendChild(skel);
@@ -536,6 +536,8 @@
                     <p class="text-[11px] text-[#A3A3A3] mt-0.5 truncate">${content.meta?.common?.authors?.join(', ') || ''}</p>
                 </div>
             `;
+
+            el.onclick = () => openModal(content);
             return el;
         }
 
@@ -553,8 +555,52 @@
             }
         };
 
-        // ... Modal Logic (keep existing mostly) ...
-    {% endraw %}
+        function openModal(content) {
+            STATE.currentModalContent = content;
+            document.getElementById('modalWebtoonTitle').textContent = content.title;
+            document.getElementById('subscribeModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('subscribeModal').classList.add('hidden');
+            document.getElementById('emailInput').value = '';
+            document.getElementById('emailError').textContent = '';
+            STATE.currentModalContent = null;
+        }
+
+        async function submitSubscription() {
+            const email = document.getElementById('emailInput').value;
+            const content = STATE.currentModalContent;
+            const errorMsg = document.getElementById('emailError');
+
+            if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                errorMsg.textContent = '올바른 이메일 형식이 아닙니다.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/subscriptions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        contentId: content.content_id,
+                        source: content.source
+                    })
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    alert('구독이 완료되었습니다!');
+                    closeModal();
+                } else {
+                    errorMsg.textContent = result.message || '오류가 발생했습니다.';
+                }
+            } catch (e) {
+                console.error(e);
+                errorMsg.textContent = '서버 통신 오류';
+            }
+        }
     </script>
 </body>
 </html>
