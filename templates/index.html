@@ -2,351 +2,558 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ending Signal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
-        body { font-family: 'Pretendard', sans-serif; background-color: #000000; color: #ffffff; }
-        /* 스크롤바 숨기기 */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        :root {
+            --bg-app: #121212;
+            --bg-card: #1E1E1E;
+            --bg-overlay: rgba(30, 30, 30, 0.85);
+            --brand-primary: #4F46E5;
+            --brand-secondary: #FACC15;
+            --text-white: #FFFFFF;
+            --text-gray-100: #E5E5E5;
+            --text-gray-400: #A3A3A3;
+            --text-gray-600: #525252;
+            --brand-glow: 0 0 10px rgba(79, 70, 229, 0.5);
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-white);
+            margin: 0;
+            overscroll-behavior-y: contain;
+        }
+
+        #app-root {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            margin: 0 auto;
+            background-color: var(--bg-app);
+            position: relative;
+            overflow-x: hidden;
+            box-shadow: none;
+        }
+
+        /* 스크롤바 숨기기 (Global) */
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Safe Area for Bottom Nav */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+        /* Animation Utilities */
+        .spring-bounce:active { transform: scale(0.95); transition: transform 0.1s; }
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Neon Glow Utilities */
+        .neon-glow {
+            box-shadow: var(--brand-glow);
+        }
+        .neon-text-glow {
+            text-shadow: 0 0 8px rgba(79, 70, 229, 0.6);
+        }
+        .neon-drop-shadow {
+            filter: drop-shadow(0 0 5px rgba(79, 70, 229, 0.6));
+        }
+
+        /* Glassmorphism - Updated to match unified BG #121212 */
+        .glass-bg {
+            background-color: rgba(18, 18, 18, 0.95); /* #121212 with slight transparency */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* L1 Logo Filter Styles */
+        .l1-logo {
+            width: 42px; height: 42px; border-radius: 50%;
+            transition: all 0.2s;
+            background-color: #333; /* Placeholder for logo img */
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: #fff;
+        }
+        .l1-logo.active {
+            border: 2px solid var(--brand-primary);
+            opacity: 1;
+            box-shadow: var(--brand-glow);
+        }
+        .l1-logo.inactive { opacity: 0.4; filter: grayscale(100%); }
+
+        /* L2 Text Tab Styles */
+        .l2-tab {
+            font-size: 13px; font-weight: 500;
+            color: var(--text-gray-600);
+            padding: 8px 0;
+            margin-right: 20px;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .l2-tab.active {
+            color: var(--text-white);
+            border-bottom-color: var(--brand-primary);
+            text-shadow: 0 0 5px rgba(255,255,255,0.3);
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background-color: var(--bg-card);
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
-<body class="antialiased pb-24 bg-black text-white">
+<body class="antialiased">
 
-    <header class="bg-black py-4 px-4 sticky top-0 z-30">
-        <div class="container mx-auto flex justify-between items-center">
-            <a href="#" id="homeButton" class="flex items-center cursor-pointer">
-                <h1 class="text-2xl font-black text-white tracking-tighter flex items-center">
-                    EN<span class="text-yellow-400 text-2xl ml-0.5">🔔</span>
+    <div id="app-root">
+        <!-- 3.1 Sticky Header -->
+        <header id="mainHeader" class="sticky top-0 z-50 h-[56px] px-4 glass-bg border-b border-white/5 flex items-center justify-between transition-all duration-300">
+            <div id="homeButton" class="flex items-center cursor-pointer spring-bounce">
+                <h1 class="text-[22px] font-black text-white tracking-tighter flex items-center">
+                    EN<span class="text-[#FACC15] text-[20px] ml-0.5 -rotate-15 transform block">🔔</span>
                 </h1>
-            </a>
-            <button id="searchButton" class="p-2 text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </button>
-        </div>
-    </header>
-
-    <main class="container mx-auto px-4">
-        <div id="filterContainer" class="sticky top-[60px] bg-black z-20 py-2">
-            <div id="sourceSelectorContainer" class="mb-2 hide-scrollbar overflow-x-auto"></div>
-            <div id="tabContainer" class="flex gap-2 overflow-x-auto hide-scrollbar pb-2"></div>
-        </div>
-
-        <div id="contentGridContainer" class="mt-2 min-h-[50vh]"></div>
-
-        <div id="paginationContainer" class="py-6 mb-10"></div>
-
-        <div id="statusIndicator" class="text-center py-20"></div>
-    </main>
-
-    <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 bg-[#121212] border-t border-[#2d2d2d] z-30 pb-safe">
-        <div class="container mx-auto flex justify-around py-2">
             </div>
-    </nav>
-
-    <div id="subscribeModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
-        <div id="modalContent" class="relative z-10 bg-[#1e1e1e] p-6 rounded-2xl w-[90%] max-w-sm mx-auto shadow-2xl transform transition-all">
-            <h2 class="text-xl font-bold mb-1 text-white">완결 알림 받기</h2>
-            <p id="modalWebtoonTitle" class="mb-4 text-gray-400 text-sm"></p>
-            <div id="modalWebtoonLinkContainer" class="mb-6 text-sm"></div>
-            <div class="mb-4">
-                <input type="email" id="emailInput" placeholder="이메일 주소 입력" class="w-full p-3 rounded-lg bg-[#2c2c2e] border-none text-white focus:ring-2 focus:ring-indigo-500 text-sm placeholder-gray-500">
-                <p id="emailError" class="text-red-500 text-xs mt-1 h-4"></p>
+            <div class="flex items-center gap-4">
+                <button id="searchButton" class="spring-bounce">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <div class="w-[28px] h-[28px] rounded-full bg-[#525252]"></div> <!-- Profile Placeholder -->
             </div>
-            <div class="flex justify-end gap-2">
-                <button id="cancelButton" class="px-4 py-2 rounded-lg bg-[#3a3a3c] text-gray-300 text-sm font-medium">취소</button>
-                <button id="subscribeButton" class="px-4 py-2 rounded-lg bg-[#4f46e5] text-white text-sm font-bold">구독하기</button>
+        </header>
+
+        <main class="min-h-screen pb-24 relative">
+             <!-- Top Filters Container -->
+            <div id="filtersWrapper" class="sticky top-[56px] z-40 bg-[#121212] transition-colors duration-300">
+                <!-- Tab 5 Specific: Segmented Toggle -->
+                <div id="mySubToggleContainer" class="hidden px-4 py-3 h-[68px] items-center">
+                    <div class="w-full bg-[#2A2A2A] h-[44px] rounded-lg p-1 flex relative">
+                        <div id="toggleIndicator" class="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#3F3F46] rounded-md transition-transform duration-300 translate-x-0"></div>
+                        <button class="flex-1 z-10 text-[13px] font-bold text-center leading-[36px] text-white" onclick="updateMySubTab('subscribing')">구독중</button>
+                        <button class="flex-1 z-10 text-[13px] font-bold text-center leading-[36px] text-gray-400" onclick="updateMySubTab('completed')">완결됨</button>
+                    </div>
+                </div>
+
+                 <!-- Tab 4 Specific: Sort Options -->
+                <div id="seriesSortOptions" class="hidden flex justify-end px-4 py-2 text-[11px] text-[#A3A3A3] gap-2">
+                    <span class="text-white font-bold cursor-pointer">최신순</span>
+                    <span>|</span>
+                    <span class="cursor-pointer">가나다순</span>
+                </div>
+
+                <!-- L1 Filter (Logos) -->
+                <div id="l1FilterContainer" class="h-[60px] flex items-center px-4 overflow-x-auto hide-scrollbar gap-3 hidden"></div>
+
+                <!-- L2 Filter (Detail Categories) -->
+                <div id="l2FilterContainer" class="h-[40px] flex items-center px-4 overflow-x-auto hide-scrollbar border-b border-white/5 hidden"></div>
+            </div>
+
+            <!-- Content Grid -->
+            <div id="contentGridContainer" class="p-4 grid grid-cols-3 gap-3 fade-in mt-2 min-h-[50vh]">
+                <!-- Skeleton/Content injected here -->
+            </div>
+
+             <!-- Tab 4 Footer Button -->
+            <div id="seriesFooterButton" class="hidden px-4 pb-6 w-full">
+                <button class="w-full h-[52px] bg-transparent border border-dashed border-[#525252] rounded-xl flex justify-center items-center cursor-pointer hover:bg-[#1E1E1E] hover:text-white hover:border-transparent transition-all group">
+                     <span class="text-[13px] text-[#A3A3A3] group-hover:text-white">(+) 당신의 시리즈를 추가해주세요</span>
+                </button>
+            </div>
+
+            <div id="statusIndicator" class="text-center py-20"></div>
+        </main>
+
+        <!-- 3.2 Bottom Navigation -->
+        <nav id="bottomNav" class="fixed bottom-0 max-w-[480px] w-full mx-auto glass-bg border-t border-white/5 z-50 pb-safe h-[64px] grid grid-cols-5">
+            <!-- Icons injected via JS -->
+        </nav>
+
+        <!-- Modals -->
+        <div id="subscribeModal" class="fixed inset-0 flex items-center justify-center z-[100] hidden">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+            <div id="modalContent" class="relative z-10 bg-[#1e1e1e] p-6 rounded-2xl w-[90%] max-w-sm mx-auto shadow-2xl transform transition-all">
+                <h2 class="text-xl font-bold mb-1 text-white">완결 알림 받기</h2>
+                <p id="modalWebtoonTitle" class="mb-4 text-gray-400 text-sm"></p>
+                <div id="modalWebtoonLinkContainer" class="mb-6 text-sm"></div>
+                <div class="mb-4">
+                    <input type="email" id="emailInput" placeholder="이메일 주소 입력" class="w-full p-3 rounded-lg bg-[#2c2c2e] border-none text-white focus:ring-2 focus:ring-indigo-500 text-sm placeholder-gray-500">
+                    <p id="emailError" class="text-red-500 text-xs mt-1 h-4"></p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button id="cancelButton" class="px-4 py-2 rounded-lg bg-[#3a3a3c] text-gray-300 text-sm font-medium spring-bounce">취소</button>
+                    <button id="subscribeButton" class="px-4 py-2 rounded-lg bg-[#4f46e5] text-white text-sm font-bold spring-bounce neon-glow">구독하기</button>
+                </div>
             </div>
         </div>
+        <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full bg-gray-800 text-white text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-[110]"></div>
     </div>
-    <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-full bg-gray-800 text-white text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-50"></div>
 
     <script>
     {% raw %}
+        const ICONS = {
+            webtoon: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M21 4H3C1.9 4 1 4.9 1 6v13c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM3 19V6h8v13H3zm18 0h-8V6h8v13z"/></svg>`, // Open Book approximation
+            novel: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7.127 22.562l-7.127 1.438 1.438-7.128 5.689 5.69zm1.414-1.414l11.228-11.225-5.69-5.692-11.227 11.227 5.689 5.69zm9.768-21.148l-2.816 2.817 5.691 5.691 2.816-2.819-5.691-5.689z"/></svg>`, // Feather Pen approximation
+            ott: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>`, // Play Circle
+            series: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>`, // TV
+            my: `<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>` // Star
+        };
+
+        const STATE = {
+            activeTab: 'webtoon',
+            filters: {
+                webtoon: { source: 'all', day: 'mon' },
+                novel: { source: 'all', day: 'mon' }, // Changed to day based on PRD
+                ott: { source: 'all', genre: 'drama' },
+                series: { sort: 'latest' },
+                my: { viewMode: 'subscribing' }
+            },
+            contents: {},
+            isLoading: false
+        };
+
+        const UI = {
+            bottomNav: document.getElementById('bottomNav'),
+            contentGrid: document.getElementById('contentGridContainer'),
+            l1Filter: document.getElementById('l1FilterContainer'),
+            l2Filter: document.getElementById('l2FilterContainer'),
+            filtersWrapper: document.getElementById('filtersWrapper'),
+            mySubToggle: document.getElementById('mySubToggleContainer'),
+            seriesSort: document.getElementById('seriesSortOptions'),
+            seriesFooter: document.getElementById('seriesFooterButton'),
+            toggleIndicator: document.getElementById('toggleIndicator'),
+            header: document.getElementById('mainHeader')
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
-            // ... (기존 변수 선언 UI, state 유지) ...
-            const UI = {
-                bottomNav: document.getElementById('bottomNav').querySelector('.container'),
-                contentGridContainer: document.getElementById('contentGridContainer'),
-                tabContainer: document.getElementById('tabContainer'),
-                sourceSelectorContainer: document.getElementById('sourceSelectorContainer'),
-                paginationContainer: document.getElementById('paginationContainer'),
-                statusIndicator: document.getElementById('statusIndicator'),
-                // ... (나머지 동일)
-                modal: document.getElementById('subscribeModal'),
-                modalContent: document.getElementById('modalContent'),
-                modalWebtoonTitle: document.getElementById('modalWebtoonTitle'),
-                modalWebtoonLinkContainer: document.getElementById('modalWebtoonLinkContainer'),
-                emailInput: document.getElementById('emailInput'),
-                emailError: document.getElementById('emailError'),
-                subscribeButton: document.getElementById('subscribeButton'),
-                cancelButton: document.getElementById('cancelButton'),
-                toast: document.getElementById('toast'),
-            };
+            renderBottomNav();
+            updateTab('webtoon'); // Initial Load
+            setupScrollEffect();
+        });
 
-            // 2. 탭 설정: '나의 구독' 내부 탭 명확화
-            const TABS_CONFIG = {
-                webtoon: { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일', daily: '매일+', hiatus: '휴재', completed: '완결' },
-                novel: { latest: '최신', popular: '인기', completed: '완결' },
-                ott: { action: '액션', romance: '로맨스', drama: '드라마' },
-                series: { latest: '최신순', alphabetical: '가나다순' },
-                my: { subscribing: '구독중', completed: '완결됨' } // 이 두 가지가 토글처럼 작동해야 함
-            };
+        function setupScrollEffect() {
+            window.addEventListener('scroll', () => {
+                const scrolled = window.scrollY > 10;
+                UI.filtersWrapper.style.backgroundColor = scrolled ? 'rgba(18, 18, 18, 0.85)' : '#121212';
+                UI.filtersWrapper.style.backdropFilter = scrolled ? 'blur(12px)' : 'none';
+                if(scrolled) UI.filtersWrapper.classList.add('border-b', 'border-white/5');
+                else UI.filtersWrapper.classList.remove('border-b', 'border-white/5');
+            });
+        }
 
-            // ... (state 변수 동일) ...
-            const state = {
-                theme: 'dark',
-                activeTab: 'webtoon',
-                filters: {
-                    webtoon: { source: 'all', day: 'mon' },
-                    novel: { source: 'all', type: 'latest' },
-                    ott: { source: 'all', genre: 'action' },
-                    series: { sort: 'latest' },
-                    my: { viewMode: 'subscribing' } // viewMode가 탭 역할을 함
-                },
-                contents: { webtoon: {}, novel: {}, ott: {}, series: {}, my: {} },
-                isLoading: false,
-                currentModal: { contentId: null, source: null }
-            };
+        function renderBottomNav() {
+            UI.bottomNav.innerHTML = '';
+            const tabs = [
+                { id: 'webtoon', label: 'Webtoon', icon: ICONS.webtoon },
+                { id: 'novel', label: 'Web Novel', icon: ICONS.novel },
+                { id: 'ott', label: 'OTT', icon: ICONS.ott },
+                { id: 'series', label: 'Series', icon: ICONS.series },
+                { id: 'my', label: 'My Sub', icon: ICONS.my },
+            ];
 
-            // ... (updateContent 함수 동일) ...
-             async function updateContent(forceRefresh = false) {
-                state.isLoading = true;
-                renderUI();
+            tabs.forEach(tab => {
+                const btn = document.createElement('button');
+                const isActive = STATE.activeTab === tab.id;
+                btn.className = `flex flex-col items-center justify-center w-full spring-bounce ${isActive ? 'text-[#4F46E5]' : 'text-[#525252]'}`;
 
-                // (데이터 페칭 로직 기존과 동일하게 유지)
-                // ...
+                // Neon glow on active icon
+                const iconClass = isActive ? 'scale-110 neon-drop-shadow' : 'scale-100';
 
-                state.isLoading = false;
-                renderUI();
+                btn.innerHTML = `
+                    <div class="mb-1 transform transition-transform duration-200 ${iconClass}">
+                        ${tab.icon}
+                    </div>
+                    <span class="text-[10px] ${isActive ? 'font-bold' : 'font-medium'}">${tab.label}</span>
+                `;
+                btn.onclick = () => updateTab(tab.id);
+                UI.bottomNav.appendChild(btn);
+            });
+        }
+
+        async function updateTab(tabId) {
+            STATE.activeTab = tabId;
+
+            // UI Updates
+            renderBottomNav();
+            updateFilterVisibility(tabId);
+            renderL1Filters(tabId);
+            renderL2Filters(tabId);
+
+            // Content Fetch
+            await fetchAndRenderContent(tabId);
+
+            // Restore Scroll logic would go here
+            window.scrollTo({top:0});
+        }
+
+        function updateFilterVisibility(tabId) {
+            UI.l1Filter.classList.add('hidden');
+            UI.l2Filter.classList.add('hidden');
+            UI.mySubToggle.classList.add('hidden');
+            UI.seriesSort.classList.add('hidden');
+            UI.seriesFooter.classList.add('hidden');
+
+            if (['webtoon', 'novel', 'ott'].includes(tabId)) {
+                UI.l1Filter.classList.remove('hidden');
+                UI.l2Filter.classList.remove('hidden');
+            } else if (tabId === 'series') {
+                UI.seriesSort.classList.remove('hidden');
+                UI.seriesFooter.classList.remove('hidden');
+            } else if (tabId === 'my') {
+                UI.mySubToggle.classList.remove('hidden');
+                // Ensure grid padding handles sticky header + toggle
+            }
+        }
+
+        function renderL1Filters(tabId) {
+            UI.l1Filter.innerHTML = '';
+            let items = [];
+
+            if (tabId === 'webtoon') {
+                items = [
+                    { id: 'all', label: '전체' },
+                    { id: 'naver', label: 'N' },
+                    { id: 'kakao', label: 'K' },
+                    { id: 'lezhin', label: 'L' },
+                    { id: 'laftel', label: 'R' }
+                ];
+            } else if (tabId === 'novel') {
+                 // Series(Green), Kakao(Yellow), Ridi(Blue), Munpia
+                items = [
+                    { id: 'all', label: 'All' },
+                    { id: 'naver_series', label: 'N', color: '#00D564' },
+                    { id: 'kakao_page', label: 'K', color: '#F7E600' },
+                    { id: 'ridi', label: 'R', color: '#0077D9' },
+                    { id: 'munpia', label: 'M' }
+                ];
+            } else if (tabId === 'ott') {
+                items = [
+                    { id: 'all', label: 'All' },
+                    { id: 'netflix', label: 'N', color: 'red' },
+                    { id: 'disney', label: 'D', color: 'blue' },
+                    { id: 'tving', label: 'T' },
+                    { id: 'watcha', label: 'W' },
+                    { id: 'wavve', label: 'Wa' }
+                ];
             }
 
-            // ... (renderUI, renderBottomNav 동일) ...
+            items.forEach(item => {
+                const el = document.createElement('div');
+                const isActive = STATE.filters[tabId].source === item.id;
+                el.className = `l1-logo flex-shrink-0 cursor-pointer spring-bounce ${isActive ? 'active' : 'inactive'}`;
+                el.textContent = item.label;
+                if (item.color && isActive) el.style.borderColor = item.color;
 
-            function renderUI() {
-                renderBottomNav();
-                renderFilters();
-                renderContentGrid();
-
-                if (state.isLoading) {
-                    UI.statusIndicator.innerHTML = '<div class="loader"></div>';
-                    // 로딩 중에는 기존 그리드를 지우지 않거나, 스켈레톤 UI를 보여주는 것이 UX에 좋음
-                } else {
-                    UI.statusIndicator.innerHTML = '';
-                }
-            }
-
-            // 하단 네비게이션 렌더링
-            function renderBottomNav() {
-                UI.bottomNav.innerHTML = '';
-                const navItems = {
-                    webtoon: { label: 'Webtoon', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z' }, // Simplified
-                    novel: { label: 'Web Novel', icon: 'M4 6h16v12H4z' },
-                    ott: { label: 'OTT', icon: 'M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z' },
-                    series: { label: 'Series', icon: 'M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z' },
-                    my: { label: 'My', icon: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' }
+                el.onclick = () => {
+                    STATE.filters[tabId].source = item.id;
+                    renderL1Filters(tabId); // Re-render for active state
+                    fetchAndRenderContent(tabId);
                 };
+                UI.l1Filter.appendChild(el);
+            });
+        }
 
-                Object.keys(navItems).forEach(tabId => {
-                    const button = document.createElement('button');
-                    const isActive = state.activeTab === tabId;
-                    const colorClass = isActive ? 'text-white' : 'text-gray-500';
+        function renderL2Filters(tabId) {
+            UI.l2Filter.innerHTML = '';
+            let items = [];
 
-                    // 아이콘은 SVG로 간단히 처리 (실제로는 제공된 이미지의 아이콘과 유사하게 맞춤)
-                    button.className = `flex flex-col items-center justify-center w-full py-1 ${colorClass}`;
-                    button.innerHTML = `
-                        <div class="mb-1">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">${navItems[tabId].icon}</svg>
-                        </div>
-                        <span class="text-[10px] font-medium">${navItems[tabId].label}</span>
-                    `;
-                    button.onclick = () => {
-                        state.activeTab = tabId;
-                        updateContent();
-                    };
-                    UI.bottomNav.appendChild(button);
-                });
+            const days = [
+                { id: 'all', label: 'ALL' },
+                { id: 'mon', label: '월' },
+                { id: 'tue', label: '화' },
+                { id: 'wed', label: '수' },
+                { id: 'thu', label: '목' },
+                { id: 'fri', label: '금' },
+                { id: 'sat', label: '토' },
+                { id: 'sun', label: '일' },
+                { id: 'daily', label: '매일' },
+                { id: 'completed', label: '완결' }
+            ];
+
+            if (tabId === 'webtoon' || tabId === 'novel') {
+                items = days;
+            } else if (tabId === 'ott') {
+                items = [
+                    { id: 'drama', label: '드라마' },
+                    { id: 'anime', label: '애니메이션' },
+                    { id: 'variety', label: '예능' },
+                    { id: 'docu', label: '다큐멘터리' }
+                ];
             }
 
-            function renderFilters() {
-                const { activeTab } = state;
-                UI.sourceSelectorContainer.innerHTML = '';
-                UI.tabContainer.innerHTML = '';
-                UI.paginationContainer.innerHTML = ''; // 초기화
+            // Determine active key
+            let activeKey = '';
+            if (tabId === 'webtoon' || tabId === 'novel') activeKey = STATE.filters[tabId].day || 'all'; // Default to ALL? PRD says Webtoon/Novel has ALL
+            if (tabId === 'ott') activeKey = STATE.filters[tabId].genre;
 
-                // 소스 선택자 (웹툰, 웹소설, OTT일 때만)
-                if (['webtoon', 'novel', 'ott'].includes(activeTab)) {
-                    renderSourceSelector(activeTab);
-                }
+            items.forEach(item => {
+                const el = document.createElement('button');
+                const isActive = activeKey === item.id;
+                el.className = `l2-tab spring-bounce ${isActive ? 'active' : ''}`;
+                el.textContent = item.label;
+                el.onclick = () => {
+                    if (tabId === 'webtoon' || tabId === 'novel') STATE.filters[tabId].day = item.id;
+                    if (tabId === 'ott') STATE.filters[tabId].genre = item.id;
 
-                // 2차 탭 (요일, 장르, 또는 구독 상태 등)
-                if (TABS_CONFIG[activeTab]) {
-                    renderDetailTabs(activeTab);
-                }
+                    renderL2Filters(tabId);
+                    fetchAndRenderContent(tabId);
+                };
+                UI.l2Filter.appendChild(el);
+            });
+        }
 
-                // 3. 시리즈 탭일 때 하단 대형 칩 버튼 렌더링
-                if (activeTab === 'series') {
-                    renderSeriesFooterButton();
-                }
+        function updateMySubTab(mode) {
+            STATE.filters.my.viewMode = mode;
+            // Animate Indicator
+            UI.toggleIndicator.style.transform = mode === 'subscribing' ? 'translateX(0)' : 'translateX(100%)';
+            // Text Colors logic could be added here
+            fetchAndRenderContent('my');
+        }
+
+        async function fetchAndRenderContent(tabId) {
+            UI.contentGrid.innerHTML = '';
+            STATE.isLoading = true;
+
+            // Show Skeleton
+            for(let i=0; i<9; i++) {
+                const skel = document.createElement('div');
+                skel.className = 'aspect-[3/4] rounded-lg skeleton'; // Default aspect
+                UI.contentGrid.appendChild(skel);
             }
 
-            // ... (renderSourceSelector 동일) ...
+            // Mock Data or Fetch
+            // For now, implementing dummy data logic aligned with existing backend capability or mocks
+            let data = [];
 
-            function renderDetailTabs(tabId) {
-                const detailTabs = TABS_CONFIG[tabId];
-                // 현재 활성화된 필터 값 찾기 (day, type, genre, sort, viewMode 등)
-                let activeValue = state.filters[tabId].day || state.filters[tabId].type || state.filters[tabId].genre || state.filters[tabId].sort || state.filters[tabId].viewMode;
+            // Grid Aspect Ratio Class
+            let aspectClass = 'aspect-[3/4]';
+            if (tabId === 'novel') aspectClass = 'aspect-[1/1.4]'; // 1:1.4
+            if (tabId === 'ott') aspectClass = 'aspect-[2/3]'; // 2:3
 
-                const container = document.createElement('div');
-                container.className = 'flex gap-2 px-1';
-
-                Object.entries(detailTabs).forEach(([key, value]) => {
-                    const button = document.createElement('button');
-                    const isActive = activeValue === key;
-
-                    // 탭 스타일: 활성화되면 흰색 배경에 검은 글씨 (또는 이미지처럼 회색 버튼)
-                    // 이미지의 '구독중/완결됨' 탭 스타일을 따름
-                    button.className = `px-4 py-1.5 rounded-full text-sm font-bold transition-colors whitespace-nowrap ${
-                        isActive
-                        ? 'bg-white text-black'
-                        : 'bg-[#2c2c2e] text-gray-400 hover:text-gray-200'
-                    }`;
-                    button.textContent = value;
-                    button.onclick = () => {
-                        // 탭별로 업데이트할 필터 키가 다름
-                        if (tabId === 'webtoon') state.filters.webtoon.day = key;
-                        else if (tabId === 'my') state.filters.my.viewMode = key;
-                        // ... 기타 탭 처리 ...
-
-                        updateContent();
-                    };
-                    container.appendChild(button);
-                });
-                UI.tabContainer.appendChild(container);
-            }
-
-            function renderContentGrid() {
-                UI.contentGridContainer.innerHTML = '';
-                const { activeTab } = state;
-
-                // 3. 시리즈 및 다른 탭들도 똑같이 3열 배치
-                UI.contentGridContainer.className = 'grid grid-cols-3 gap-3 pb-10';
-
-                let dataToRender = [];
-
-                if (activeTab === 'webtoon') {
-                    // (기존 로직)
-                    const { source, day } = state.filters.webtoon;
-                    const webtoonData = state.contents.webtoon[`${source}_${day}`];
-                    dataToRender = (day === 'hiatus' || day === 'completed') ? (webtoonData?.contents || []) : (webtoonData?.[day] || []);
+            // Need to actually fetch data here
+            // Reusing existing API structure where possible
+            try {
+                let url = '';
+                // Construct URL based on tab
+                if (tabId === 'webtoon' || tabId === 'novel') {
+                    const day = STATE.filters[tabId].day;
+                    const source = STATE.filters[tabId].source;
+                    if (day === 'completed') {
+                         url = `/api/contents/completed?type=${tabId}&source=${source}`;
+                    } else if (day === 'hiatus') {
+                         url = `/api/contents/hiatus?type=${tabId}&source=${source}`;
+                    } else {
+                         url = `/api/contents/ongoing?type=${tabId}&source=${source}`; // logic for days needs filter
+                    }
                 }
-                else if (activeTab === 'series') {
-                    // 시리즈 탭용 더미 데이터 (현재 DB가 없으므로)
-                    // 실제로는 fetch data 사용해야 함
-                    dataToRender = [
-                         { title: '재벌집 막내아들', status: '완결', meta: { common: { thumbnail_url: 'https://via.placeholder.com/150' } } },
-                         { title: '전지적 독자 시점', status: '연재중', meta: { common: { thumbnail_url: 'https://via.placeholder.com/150' } } },
-                         { title: '나 혼자만 레벨업', status: '완결', meta: { common: { thumbnail_url: 'https://via.placeholder.com/150' } } },
-                         { title: '광마회귀', status: '연재중', meta: { common: { thumbnail_url: 'https://via.placeholder.com/150' } } },
+
+                // Fetching... (Simulated delay for effect)
+                await new Promise(r => setTimeout(r, 300));
+
+                if (url) {
+                    const res = await fetch(url);
+                    const json = await res.json();
+
+                    // Client side filtering for Day if API returns grouped
+                    if (tabId === 'webtoon' || tabId === 'novel') {
+                         const day = STATE.filters[tabId].day;
+                         if (day !== 'completed' && day !== 'hiatus' && day !== 'all') {
+                             data = json[day] || [];
+                         } else if (day === 'all') {
+                             // Aggregate all days
+                             Object.values(json).forEach(arr => { if(Array.isArray(arr)) data.push(...arr); });
+                         } else {
+                             data = json.contents || [];
+                         }
+                    }
+                } else {
+                    // Mock for Series / OTT / My Sub as backend endpoints might be missing
+                     data = [
+                        { title: 'Mock Item 1', meta: { common: { thumbnail_url: null } } },
+                        { title: 'Mock Item 2', meta: { common: { thumbnail_url: null } } },
+                        { title: 'Mock Item 3', meta: { common: { thumbnail_url: null } } },
                     ];
                 }
-                else if (activeTab === 'my') {
-                     // 2. 나의 구독 탭 로직: viewMode('subscribing' vs 'completed')에 따라 하나만 보여줌
-                     // 실제 구현시엔 state.mySubscriptions 등을 필터링해서 보여줘야 함.
-                     const viewMode = state.filters.my.viewMode; // 'subscribing' or 'completed'
-                     // (예시 더미)
-                     if (viewMode === 'subscribing') {
-                         dataToRender = [{ title: '구독중인 작품1', status: '연재중' }, { title: '구독중2', status: '휴재' }];
-                     } else {
-                         dataToRender = [{ title: '완결된 내 작품1', status: '완결' }];
-                     }
-                }
 
-                if (!dataToRender || dataToRender.length === 0) {
-                    UI.contentGridContainer.className = 'block'; // 메시지는 그리드 해제
-                    UI.contentGridContainer.innerHTML = '<p class="text-center text-gray-600 py-20 text-sm">콘텐츠가 없습니다.</p>';
-                    return;
-                }
-
-                dataToRender.forEach(content => {
-                    UI.contentGridContainer.appendChild(createContentCard(content));
-                });
+            } catch (e) {
+                console.error("Fetch error", e);
             }
 
-            // 3. 시리즈 하단 버튼 (대형 칩 모양)
-            function renderSeriesFooterButton() {
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'flex justify-center mt-4';
+            STATE.isLoading = false;
+            UI.contentGrid.innerHTML = ''; // Clear Skeletons
 
-                const button = document.createElement('button');
-                // 대형 칩 스타일: 둥근 모서리, 배경색, 중앙 정렬
-                button.className = 'w-full max-w-sm bg-[#2c2c2e] hover:bg-[#3a3a3c] text-gray-300 py-4 px-6 rounded-full flex items-center justify-between transition-all group';
-                button.innerHTML = `
-                    <span class="text-sm font-medium pl-2">(당신의 시리즈를 추가해주세요)</span>
-                    <span class="bg-gray-600 group-hover:bg-gray-500 rounded-full w-8 h-8 flex items-center justify-center text-white text-xl font-light">+</span>
-                `;
-                button.onclick = () => window.open('https://forms.gle/HHhRRxZdE8g4x6nm9', '_blank');
-
-                buttonContainer.appendChild(button);
-                UI.paginationContainer.appendChild(buttonContainer);
+            if (!data.length) {
+                UI.contentGrid.innerHTML = '<div class="col-span-3 text-center text-gray-500 py-10 text-xs">콘텐츠가 없습니다.</div>';
+                return;
             }
 
-            function createContentCard(content) {
-                const card = document.createElement('div');
-                card.className = 'relative group cursor-pointer';
+            data.forEach(item => {
+                const card = createCard(item, tabId, aspectClass);
+                UI.contentGrid.appendChild(card);
+            });
+        }
 
-                const thumbnailUrl = content.meta?.common?.thumbnail_url || 'https://via.placeholder.com/300x400/333/999?text=No+Img';
+        function createCard(content, tabId, aspectClass) {
+            const el = document.createElement('div');
+            el.className = 'relative group cursor-pointer fade-in';
+            const thumb = content.meta?.common?.thumbnail_url || 'https://via.placeholder.com/300x400/333/999?text=No+Img';
 
-                // 배지 로직
-                // 3. 시리즈 & 작품 카드 좌측 상단에 END(종모양) 로고 추가
-                // 사용자의 요청: "END(D는 종모양)"
-                let badge = '';
-                if (content.status === '완결') {
-                    // 좌측 상단 END 로고 (D 대신 종 아이콘)
-                    badge = `
-                        <div class="absolute top-0 left-0 bg-black/60 backdrop-blur-md px-2 py-1 rounded-br-lg z-10 flex items-center gap-0.5">
-                            <span class="text-[10px] font-black text-white leading-none">EN</span>
-                            <span class="text-[10px] text-yellow-400 leading-none">🔔</span>
-                        </div>
-                    `;
-                } else if (content.status === '휴재') {
-                    badge = '<span class="absolute top-1 right-1 text-[10px] font-bold bg-gray-600/90 text-white px-2 py-0.5 rounded-sm">휴재</span>';
-                } else if (content.status === '연재중' && state.activeTab === 'webtoon') {
-                     // 연재중인 경우 굳이 표시 안하거나, UP 뱃지 등을 달 수 있음
-                }
-
-                card.innerHTML = `
-                    <div class="aspect-[3/4] rounded-lg overflow-hidden bg-gray-800 relative mb-2">
-                        <img src="${thumbnailUrl}" alt="${content.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                        ${badge}
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
-                    </div>
-                    <div class="px-1">
-                        <h3 class="font-semibold text-white text-sm truncate">${content.title}</h3>
-                        <p class="text-xs text-gray-500 truncate mt-0.5">${content.meta?.common?.authors?.join(', ') || ''}</p>
+            // Bell Overlay for 'My Sub'
+            let overlay = '';
+            if (tabId === 'my') {
+                const isOn = true; // Logic to check if notifications are on
+                overlay = `
+                    <div class="absolute top-[6px] right-[6px] h-[20px] px-2 rounded-[12px] backdrop-blur-[4px] flex items-center gap-1 z-20 ${isOn ? 'bg-black/60' : 'bg-black/40'}" onclick="event.stopPropagation(); toggleBell(this)">
+                        <span class="text-[10px]">${isOn ? '🔔' : '🔕'}</span>
+                        <span class="text-[9px] font-bold ${isOn ? 'text-white' : 'text-gray-400'}">${isOn ? 'ON' : 'OFF'}</span>
                     </div>
                 `;
-
-                // 나의 구독 탭에서는 카드 스타일이 다를 수 있음 (이미지 참고: 리스트 형태가 아닌 그리드 형태라면 위 코드 사용. 리스트라면 분기 필요)
-                // 요청사항에 "시리즈에도 작품을 똑같이 3열로 배치"라고 했으므로 그리드 유지.
-
-                card.onclick = () => openModal(content.content_id || 'temp', content.title, content.source || 'series');
-                return card;
             }
 
-            // ... (나머지 openModal, initialize 등 동일) ...
-            function initialize() {
-                updateContent();
-                UI.homeButton.onclick = (e) => { e.preventDefault(); window.location.reload(); };
-                UI.cancelButton.onclick = closeModal;
-                // ...
+            // Badge Logic (Existing)
+            let badge = '';
+            if (content.status === '완결') {
+                 badge = `
+                    <div class="absolute top-0 left-0 bg-black/60 backdrop-blur-md px-2 py-1 rounded-br-lg z-10 flex items-center gap-0.5">
+                        <span class="text-[10px] font-black text-white leading-none">EN</span>
+                        <span class="text-[10px] text-yellow-400 leading-none">🔔</span>
+                    </div>`;
             }
 
-            initialize();
-        });
+            // Using #1E1E1E for Card BG
+            el.innerHTML = `
+                <div class="${aspectClass} rounded-lg overflow-hidden bg-[#1E1E1E] relative mb-2">
+                    <img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    ${badge}
+                    ${overlay}
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
+                </div>
+                <div class="px-0.5">
+                    <h3 class="font-bold text-[13px] text-[#E5E5E5] leading-[1.4] truncate">${content.title}</h3>
+                    <p class="text-[11px] text-[#A3A3A3] mt-0.5 truncate">${content.meta?.common?.authors?.join(', ') || ''}</p>
+                </div>
+            `;
+            return el;
+        }
+
+        window.toggleBell = (el) => {
+            // Dummy Toggle Logic
+            const isCurrentlyOn = el.querySelector('span:last-child').innerText === 'ON';
+            const newState = !isCurrentlyOn;
+
+            if (newState) {
+                el.className = el.className.replace('bg-black/40', 'bg-black/60');
+                el.innerHTML = `<span class="text-[10px]">🔔</span><span class="text-[9px] font-bold text-white">ON</span>`;
+            } else {
+                el.className = el.className.replace('bg-black/60', 'bg-black/40');
+                el.innerHTML = `<span class="text-[10px]">🔕</span><span class="text-[9px] font-bold text-gray-400">OFF</span>`;
+            }
+        };
+
+        // ... Modal Logic (keep existing mostly) ...
     {% endraw %}
     </script>
 </body>

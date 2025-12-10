@@ -68,18 +68,23 @@ def get_ongoing_contents():
     cursor.close()
 
     # 콘텐츠 타입에 따라 분기
-    if content_type == 'webtoon':
-        # 웹툰인 경우, 요일별로 그룹화
+    if content_type in ['webtoon', 'novel']:
+        # 웹툰/웹소설인 경우, 요일별로 그룹화
         grouped_by_day = { 'mon': [], 'tue': [], 'wed': [], 'thu': [], 'fri': [], 'sat': [], 'sun': [], 'daily': [] }
         for content in all_contents:
             # 변경된 meta 구조에 맞게 'attributes'에서 'weekdays'를 가져옴
             day_list = content.get('meta', {}).get('attributes', {}).get('weekdays', [])
+            # 만약 weekdays가 없으면 'daily'나 기타로 분류할 수도 있음
+            if not day_list:
+                # Fallback: or check raw meta if needed
+                pass
+
             for day_eng in day_list:
                 if day_eng in grouped_by_day:
                     grouped_by_day[day_eng].append(content)
         return jsonify(grouped_by_day)
     else:
-        # 다른 콘텐츠 타입의 경우, 그룹화하지 않고 목록 그대로 반환 (향후 확장 가능)
+        # 다른 콘텐츠 타입(OTT, Series)의 경우, 그룹화하지 않고 목록 그대로 반환
         return jsonify(all_contents)
 
 @contents_bp.route('/api/contents/hiatus', methods=['GET'])
