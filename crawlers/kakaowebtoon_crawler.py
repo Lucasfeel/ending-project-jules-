@@ -7,7 +7,7 @@ import os
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from .base_crawler import ContentCrawler
-from database import get_cursor
+from database import get_cursor, create_standalone_connection
 from services.notification_service import send_completion_notifications
 
 # --- KakaoWebtoon API Configuration ---
@@ -199,29 +199,42 @@ class KakaowebtoonCrawler(ContentCrawler):
         print("DB 동기화 완료.")
         return len(inserts)
 
-    async def run_daily_check(self, conn):
+    async def run_daily_check(self):
         """
         매일 실행되는 메인 로직입니다.
+        [수정] DB 연결을 함수 내부에서 독립적으로 관리하도록 변경
         """
         print(f"=== [{self.source_name.title()}] 일일 점검 시작 ===")
-        cursor = get_cursor(conn)
+        conn = None
+        try:
+            print(f"LOG: Creating standalone database connection for {self.source_name}...")
+            conn = create_standalone_connection()
+            cursor = get_cursor(conn)
 
-        cursor.execute("SELECT content_id, status FROM contents WHERE source = %s", (self.source_name,))
-        db_state_before_sync = {row['content_id']: row['status'] for row in cursor.fetchall()}
-        cursor.close()
-        print(f"  -> DB에서 {len(db_state_before_sync)}개의 기존 콘텐츠 상태를 로드했습니다.")
+            cursor.execute("SELECT content_id, status FROM contents WHERE source = %s", (self.source_name,))
+            db_state_before_sync = {row['content_id']: row['status'] for row in cursor.fetchall()}
+            cursor.close()
+            print(f"  -> DB에서 {len(db_state_before_sync)}개의 기존 콘텐츠 상태를 로드했습니다.")
 
-        ongoing, hiatus, finished, all_content = await self.fetch_all_data()
+            ongoing, hiatus, finished, all_content = await self.fetch_all_data()
 
-        newly_completed_ids = {
-            cid for cid, status in db_state_before_sync.items()
-            if status in ('연재중', '휴재') and cid in finished
-        }
-        print(f"  -> {len(newly_completed_ids)}개의 신규 완결 작품을 감지했습니다.")
+            newly_completed_ids = {
+                cid for cid, status in db_state_before_sync.items()
+                if status in ('연재중', '휴재') and cid in finished
+            }
+            print(f"  -> {len(newly_completed_ids)}개의 신규 완결 작품을 감지했습니다.")
 
-        details, notified = send_completion_notifications(get_cursor(conn), newly_completed_ids, all_content, self.source_name)
+            details, notified = send_completion_notifications(get_cursor(conn), newly_completed_ids, all_content, self.source_name)
 
-        added = self.synchronize_database(conn, all_content, ongoing, hiatus, finished)
+            added = self.synchronize_database(conn, all_content, ongoing, hiatus, finished)
 
-        print(f"=== [{self.source_name.title()}] 일일 점검 완료 ===")
-        return added, details, notified
+            print(f"=== [{self.source_name.title()}] 일일 점검 완료 ===")
+            return added, details, notified
+
+        except Exception as e:
+            print(f"Error in run_daily_check: {e}")
+            raise e
+        finally:
+            if conn:
+                print(f"LOG: Closing database connection for {self.source_name}.")
+                conn.close()

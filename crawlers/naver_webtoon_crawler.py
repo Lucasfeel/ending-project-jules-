@@ -131,10 +131,14 @@ class NaverWebtoonCrawler(ContentCrawler):
             else: continue
 
             author = webtoon_data.get('author')
+
+            # [수정] 썸네일 이미지 매핑 로직 개선
+            thumbnail_url = webtoon_data.get('thumbnailUrl') or webtoon_data.get('imgUrl') or webtoon_data.get('posterImage')
+
             meta_data = {
                 "common": {
                     "authors": [author] if author else [],
-                    "thumbnail_url": None
+                    "thumbnail_url": thumbnail_url
                 },
                 "attributes": {
                     "weekdays": webtoon_data.get('normalized_weekdays', [])
@@ -164,29 +168,45 @@ class NaverWebtoonCrawler(ContentCrawler):
         print("DB 동기화 완료.")
         return len(inserts)
 
-    async def run_daily_check(self, conn):
+    async def run_daily_check(self):
+        """
+        [수정] DB 연결을 함수 내부에서 독립적으로 관리하도록 변경
+        """
         print("LOG: run_daily_check started.")
-        cursor = get_cursor(conn)
-        print(f"=== {self.source_name} 일일 점검 시작 ===")
-        cursor.execute("SELECT content_id, status FROM contents WHERE source = %s", (self.source_name,))
-        db_state_before_sync = {row['content_id']: row['status'] for row in cursor.fetchall()}
-        cursor.close()
-        print("LOG: Initial database state loaded.")
+        conn = None
+        try:
+            print("LOG: Creating standalone database connection for Naver Webtoon Crawler...")
+            conn = create_standalone_connection()
 
-        ongoing, hiatus, finished, all_content = await self.fetch_all_data()
-        print("LOG: Data fetched from API.")
+            cursor = get_cursor(conn)
+            print(f"=== {self.source_name} 일일 점검 시작 ===")
+            cursor.execute("SELECT content_id, status FROM contents WHERE source = %s", (self.source_name,))
+            db_state_before_sync = {row['content_id']: row['status'] for row in cursor.fetchall()}
+            cursor.close()
+            print("LOG: Initial database state loaded.")
 
-        newly_completed_ids = {cid for cid, s in db_state_before_sync.items() if s in ('연재중', '휴재') and cid in finished}
-        print(f"LOG: Found {len(newly_completed_ids)} newly completed items.")
+            ongoing, hiatus, finished, all_content = await self.fetch_all_data()
+            print("LOG: Data fetched from API.")
 
-        details, notified = send_completion_notifications(get_cursor(conn), newly_completed_ids, all_content, self.source_name)
-        print("LOG: Notification service executed.")
+            newly_completed_ids = {cid for cid, s in db_state_before_sync.items() if s in ('연재중', '휴재') and cid in finished}
+            print(f"LOG: Found {len(newly_completed_ids)} newly completed items.")
 
-        added = self.synchronize_database(conn, all_content, ongoing, hiatus, finished)
-        print("LOG: Database synchronization executed.")
+            details, notified = send_completion_notifications(get_cursor(conn), newly_completed_ids, all_content, self.source_name)
+            print("LOG: Notification service executed.")
 
-        print("\n=== 일일 점검 완료 ===")
-        return added, details, notified
+            added = self.synchronize_database(conn, all_content, ongoing, hiatus, finished)
+            print("LOG: Database synchronization executed.")
+
+            print("\n=== 일일 점검 완료 ===")
+            return added, details, notified
+
+        except Exception as e:
+            print(f"Error in run_daily_check: {e}")
+            raise e
+        finally:
+            if conn:
+                print("LOG: Closing database connection for Naver Webtoon Crawler.")
+                conn.close()
 
 if __name__ == '__main__':
     print("==========================================")
@@ -194,7 +214,6 @@ if __name__ == '__main__':
     print("==========================================")
     start_time = time.time()
     report = {'status': '성공'}
-    db_conn = None
     CRAWLER_DISPLAY_NAME = "네이버 웹툰"
 
     try:
@@ -203,15 +222,11 @@ if __name__ == '__main__':
         # setup_database_standalone()
         # print("LOG: setup_database_standalone() finished.")
 
-        print("LOG: Calling create_standalone_connection()...")
-        db_conn = create_standalone_connection()
-        print("LOG: create_standalone_connection() finished.")
-
         crawler = NaverWebtoonCrawler()
         print("LOG: NaverWebtoonCrawler instance created.")
 
         print("LOG: Calling asyncio.run(crawler.run_daily_check())...")
-        new_contents, completed_details, total_notified = asyncio.run(crawler.run_daily_check(db_conn))
+        new_contents, completed_details, total_notified = asyncio.run(crawler.run_daily_check())
         print("LOG: asyncio.run(crawler.run_daily_check()) finished.")
 
         report.update({'new_webtoons': new_contents, 'completed_details': completed_details, 'total_notified': total_notified})
@@ -222,10 +237,6 @@ if __name__ == '__main__':
         report['error_message'] = traceback.format_exc()
 
     finally:
-        if db_conn:
-            print("LOG: Closing database connection.")
-            db_conn.close()
-
         report['duration'] = time.time() - start_time
 
         # === 🚨 [리팩토링] 메일 발송 대신 DB에 보고서 저장 ===

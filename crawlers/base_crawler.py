@@ -27,7 +27,7 @@ class ContentCrawler(ABC):
         pass
 
     @abstractmethod
-    async def run_daily_check(self, conn):
+    async def run_daily_check(self):
         """
         일일 데이터 점검 및 완결 알림 프로세스를 실행합니다.
         """
