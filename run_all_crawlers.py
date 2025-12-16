@@ -25,16 +25,17 @@ async def run_one_crawler(crawler_class):
     """
     단일 크롤러 인스턴스를 생성하고 실행한 뒤, 그 결과를 DB에 보고합니다.
     """
-    crawler_instance = crawler_class()
-    crawler_display_name = crawler_instance.source_name.replace('_', ' ').title()
-
-    print(f"\n--- [{crawler_display_name}] 크롤러 작업 시작 ---")
-
     report = {'status': '성공'}
     crawler_start_time = time.time()
 
     db_conn = None
     try:
+        crawler_instance = crawler_class()
+        crawler_display_name = getattr(crawler_instance, 'source_name', crawler_class.__name__)
+        crawler_display_name = crawler_display_name.replace('_', ' ').title()
+
+        print(f"\n--- [{crawler_display_name}] 크롤러 작업 시작 ---")
+
         db_conn = create_standalone_connection()
         new_contents, completed_details, total_notified = await crawler_instance.run_daily_check(db_conn)
         report.update({
@@ -43,6 +44,8 @@ async def run_one_crawler(crawler_class):
             'total_notified': total_notified
         })
     except Exception as e:
+        crawler_display_name = crawler_display_name if 'crawler_display_name' in locals() else crawler_class.__name__
+        crawler_display_name = crawler_display_name.replace('_', ' ').title()
         print(f"FATAL: [{crawler_display_name}] 크롤러 실행 중 치명적 오류 발생: {e}", file=sys.stderr)
         report['status'] = '실패'
         report['error_message'] = traceback.format_exc()
