@@ -1,56 +1,133 @@
 # views/subscriptions.py
 
-import re
 import psycopg2
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
+
 from database import get_db, get_cursor
+from utils.auth import login_required
 
 subscriptions_bp = Blueprint('subscriptions', __name__)
 
-def is_valid_email(email):
-    """서버 단에서 이메일 형식의 유효성을 검증합니다."""
-    return re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email)
 
-@subscriptions_bp.route('/api/subscriptions', methods=['POST'])
-def subscribe():
-    """사용자의 구독 요청을 처리합니다."""
-    data = request.json
-    email = data.get('email')
-    content_id = data.get('contentId')
+def _error_response(code: str, message: str, status: int):
+    return jsonify({'success': False, 'error': {'code': code, 'message': message}}), status
+
+
+def _get_payload_content(data):
+    content_id = data.get('contentId') or data.get('content_id')
     source = data.get('source')
+    return content_id, source
 
-    if not all([email, content_id, source]):
-        return jsonify({'status': 'error', 'message': '이메일, 콘텐츠 ID, 소스가 필요합니다.'}), 400
-    if not is_valid_email(email):
-        return jsonify({'status': 'error', 'message': '올바른 이메일 형식이 아닙니다.'}), 400
+
+@subscriptions_bp.route('/api/me/subscriptions', methods=['GET'])
+@login_required
+def list_subscriptions():
+    user_id = g.current_user.get('id')
+    try:
+        conn = get_db()
+        cursor = get_cursor(conn)
+
+        cursor.execute(
+            """
+            SELECT s.content_id, s.source, c.content_type, c.title, c.status, c.meta
+            FROM subscriptions s
+            JOIN contents c ON s.content_id = c.content_id AND s.source = c.source
+            WHERE s.user_id = %s
+            ORDER BY c.title ASC
+            """,
+            (user_id,),
+        )
+        rows = cursor.fetchall()
+        cursor.close()
+
+        subscriptions = []
+        for row in rows:
+            subscriptions.append(
+                {
+                    'contentId': row['content_id'],
+                    'source': row['source'],
+                    'contentType': row['content_type'],
+                    'title': row['title'],
+                    'status': row['status'],
+                    'meta': row['meta'],
+                }
+            )
+
+        return jsonify({'success': True, 'subscriptions': subscriptions}), 200
+    except psycopg2.Error:
+        return _error_response('DB_ERROR', '데이터베이스 오류가 발생했습니다.', 500)
+    except Exception:
+        return _error_response('SERVER_ERROR', '서버 오류가 발생했습니다.', 500)
+
+
+@subscriptions_bp.route('/api/me/subscriptions', methods=['POST'])
+@login_required
+def subscribe():
+    data = request.get_json() or {}
+    content_id, source = _get_payload_content(data)
+
+    if not content_id or not source:
+        return _error_response('INVALID_REQUEST', 'contentId와 source가 필요합니다.', 400)
+
+    user_id = g.current_user.get('id')
 
     try:
         conn = get_db()
         cursor = get_cursor(conn)
 
-        # [추가] 1. 구독 대상 콘텐츠가 DB에 실재하는지 확인
         cursor.execute(
-            "SELECT 1 FROM contents WHERE content_id = %s AND source = %s",
-            (str(content_id), source)
+            'SELECT 1 FROM contents WHERE content_id = %s AND source = %s',
+            (str(content_id), source),
         )
         if cursor.fetchone() is None:
-            # 존재하지 않는 콘텐츠에 대한 요청
             cursor.close()
-            return jsonify({'status': 'error', 'message': '존재하지 않는 콘텐츠입니다.'}), 404
+            return _error_response('CONTENT_NOT_FOUND', '존재하지 않는 콘텐츠입니다.', 404)
 
-        # 2. (콘텐츠가 존재할 경우) 구독 정보 삽입
         cursor.execute(
-            "INSERT INTO subscriptions (email, content_id, source) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
-            (email, str(content_id), source)
+            """
+            INSERT INTO subscriptions (user_id, content_id, source)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (user_id, content_id, source) DO NOTHING
+            """,
+            (user_id, str(content_id), source),
         )
         conn.commit()
         cursor.close()
-        return jsonify({'status': 'success', 'message': f'ID {content_id} ({source}) 구독 완료!'})
-    except psycopg2.Error as e:
-        conn.rollback()  # 오류 발생 시 롤백 추가
+        return jsonify({'success': True}), 200
+    except psycopg2.Error:
+        conn.rollback()
+        return _error_response('DB_ERROR', '데이터베이스 오류가 발생했습니다.', 500)
+    except Exception:
+        conn.rollback()
+        return _error_response('SERVER_ERROR', '서버 오류가 발생했습니다.', 500)
+
+
+@subscriptions_bp.route('/api/me/subscriptions', methods=['DELETE'])
+@login_required
+def unsubscribe():
+    data = request.get_json() or {}
+    content_id, source = _get_payload_content(data)
+
+    if not content_id or not source:
+        return _error_response('INVALID_REQUEST', 'contentId와 source가 필요합니다.', 400)
+
+    user_id = g.current_user.get('id')
+
+    try:
+        conn = get_db()
+        cursor = get_cursor(conn)
+
+        cursor.execute(
+            'DELETE FROM subscriptions WHERE user_id = %s AND content_id = %s AND source = %s',
+            (user_id, str(content_id), source),
+        )
+        conn.commit()
         cursor.close()
-        return jsonify({'status': 'error', 'message': f'데이터베이스 오류: {e}'}), 500
-    except Exception as e:
-        conn.rollback()  # 예상치 못한 오류 발생 시 롤백 추가
-        cursor.close()
-        return jsonify({'status': 'error', 'message': f'서버 오류: {e}'}), 500
+        return jsonify({'success': True}), 200
+    except psycopg2.Error:
+        conn.rollback()
+        return _error_response('DB_ERROR', '데이터베이스 오류가 발생했습니다.', 500)
+    except Exception:
+        conn.rollback()
+        return _error_response('SERVER_ERROR', '서버 오류가 발생했습니다.', 500)
+
