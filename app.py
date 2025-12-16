@@ -15,6 +15,7 @@ load_dotenv()
 from views.contents import contents_bp
 from views.subscriptions import subscriptions_bp
 from views.status import status_bp
+from views.auth import auth_bp
 from database import close_db
 
 # --- 2. Flask 앱 생성 및 설정 ---
@@ -25,6 +26,7 @@ CORS(app)
 app.register_blueprint(contents_bp)
 app.register_blueprint(subscriptions_bp)
 app.register_blueprint(status_bp)
+app.register_blueprint(auth_bp)
 
 # app 컨텍스트가 종료될 때마다 close_db를 호출하도록 설정
 @app.teardown_appcontext
