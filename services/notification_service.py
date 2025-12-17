@@ -46,7 +46,7 @@ def send_completion_notifications(conn, newly_completed_items, all_content_today
 
         cursor.execute(
             """
-            SELECT DISTINCT ON (u.id) u.id AS user_id, u.email
+            SELECT DISTINCT u.id AS user_id, u.email
             FROM subscriptions s
             JOIN users u ON s.user_id = u.id
             WHERE s.content_id = %s AND s.source = %s
