@@ -27,15 +27,14 @@ class ContentCrawler(ABC):
     def synchronize_database(self, conn, all_content_today, ongoing_today, hiatus_today, finished_today):
         """
         데이터베이스를 최신 상태로 동기화합니다.
-        NOTE: commit은 ContentCrawler.run_daily_check()에서 강제합니다.
+        NOTE: commit/rollback은 ContentCrawler.run_daily_check()에서 강제합니다.
         """
         raise NotImplementedError
 
     async def run_daily_check(self, conn):
         """
-        일일 데이터 점검 및 완결 알림 프로세스를 실행합니다.
+        일일 데이터 점검 및 CDC 이벤트 기록 프로세스 실행.
 
-        Template Method 패턴 구현:
         1) DB 스냅샷 로드 (Final State)
         2) 원격 데이터 수집(fetch_all_data)
         3) 신규 완결 감지 및 CDC 이벤트 기록 (Final-State CDC)
@@ -146,7 +145,6 @@ class ContentCrawler(ABC):
             # 9) Single commit here (forced)
             conn.commit()
 
-            # IMPORTANT: keep return signature stable (3-tuple)
             return added, newly_completed_items, cdc_info
 
         except Exception:
@@ -162,39 +160,3 @@ class ContentCrawler(ABC):
                     cursor.close()
                 except Exception:
                     pass
-
-                        content_id=content_id,
-                        source=self.source_name,
-                        final_completed_at=final_completed_at,
-                        resolved_by=current_final_state.get('resolved_by'),
-                    ):
-                        cdc_events_inserted_count += 1
-                        cdc_events_inserted_items.append(content_id)
-
-            resolved_by_counts = {}
-            for _, _, _, resolved_by in newly_completed_items:
-                resolved_by_counts[resolved_by] = resolved_by_counts.get(resolved_by, 0) + 1
-
-            cdc_info = {
-                'cdc_mode': 'final_state',
-                'newly_completed_count': len(newly_completed_items),
-                'resolved_by_counts': resolved_by_counts,
-                'cdc_events_inserted_count': cdc_events_inserted_count,
-                'cdc_events_inserted_items': cdc_events_inserted_items,
-            }
-
-            # 8) DB sync
-            added = self.synchronize_database(conn, all_content_today, ongoing_today, hiatus_today, finished_today)
-
-            conn.commit()
-
-            # IMPORTANT: keep return signature stable (3-tuple)
-            return added, newly_completed_items, cdc_info
-        except Exception:
-            conn.rollback()
-            if cursor:
-                try:
-                    cursor.close()
-                except Exception:
-                    pass
-            raise
