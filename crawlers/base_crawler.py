@@ -27,6 +27,7 @@ class ContentCrawler(ABC):
     def synchronize_database(self, conn, all_content_today, ongoing_today, hiatus_today, finished_today):
         """
         데이터베이스를 최신 상태로 동기화합니다.
+        NOTE: commit은 ContentCrawler.run_daily_check()에서 강제합니다.
         """
         raise NotImplementedError
 
@@ -39,6 +40,10 @@ class ContentCrawler(ABC):
         2) 원격 데이터 수집(fetch_all_data)
         3) 신규 완결 감지 및 CDC 이벤트 기록 (Final-State CDC)
         4) DB 동기화(synchronize_database)
+
+        트랜잭션 경계:
+        - 성공 시 run_daily_check에서 1회 commit
+        - 실패 시 rollback
         """
         cursor = None
         try:
@@ -46,16 +51,15 @@ class ContentCrawler(ABC):
 
             # 1) Load previous crawler status snapshot (raw)
             cursor.execute("SELECT content_id, status FROM contents WHERE source = %s", (self.source_name,))
-            db_status_map = {row['content_id']: row['status'] for row in cursor.fetchall()}
+            db_status_map = {row["content_id"]: row["status"] for row in cursor.fetchall()}
 
             # 2) Load overrides (overlay)
             cursor.execute(
-                "SELECT content_id, override_status, override_completed_at FROM admin_content_overrides WHERE source = %s",
+                "SELECT content_id, override_status, override_completed_at "
+                "FROM admin_content_overrides WHERE source = %s",
                 (self.source_name,),
             )
-            override_map = {row['content_id']: row for row in cursor.fetchall()}
-            cursor.close()
-            cursor = None
+            override_map = {row["content_id"]: row for row in cursor.fetchall()}
 
             # 3) Resolve previous final states
             db_state_before_sync = {}
@@ -67,19 +71,19 @@ class ContentCrawler(ABC):
             # 4) Fetch today's data
             ongoing_today, hiatus_today, finished_today, all_content_today = await self.fetch_all_data()
 
-            # 5) Build current raw status map
+            # 5) Build current raw status map (from today's fetch)
             current_status_map = {}
             for content_id in all_content_today.keys():
                 if content_id in finished_today:
-                    current_status_map[content_id] = '완결'
+                    current_status_map[content_id] = "완결"
                 elif content_id in hiatus_today:
-                    current_status_map[content_id] = '휴재'
+                    current_status_map[content_id] = "휴재"
                 elif content_id in ongoing_today:
-                    current_status_map[content_id] = '연재중'
+                    current_status_map[content_id] = "연재중"
 
             # Fill missing ids with previous known final status (stability for partial fetch)
             for content_id, previous_state in db_state_before_sync.items():
-                current_status_map.setdefault(content_id, previous_state['final_status'])
+                current_status_map.setdefault(content_id, previous_state["final_status"])
 
             # 6) Resolve current final states
             current_final_state_map = {}
@@ -88,22 +92,77 @@ class ContentCrawler(ABC):
                     current_status_map.get(content_id), override_map.get(content_id)
                 )
 
-            # 7) Final-State CDC: newly completed
+            # 7) Final-State CDC: newly completed + record events
             newly_completed_items = []
             cdc_events_inserted_count = 0
             cdc_events_inserted_items = []
-            for content_id, current_final_state in current_final_state_map.items():
-                previous_final_state = db_state_before_sync.get(content_id, {'final_status': None})
-                if previous_final_state.get('final_status') != '완결' and current_final_state['final_status'] == '완결':
-                    final_completed_at = current_final_state.get('final_completed_at')
-                    display_completed_at = final_completed_at.isoformat() if hasattr(final_completed_at, 'isoformat') else final_completed_at
 
-                    newly_completed_items.append(
-                        (content_id, self.source_name, display_completed_at, current_final_state.get('resolved_by'))
+            for content_id, current_final_state in current_final_state_map.items():
+                previous_final_state = db_state_before_sync.get(content_id, {"final_status": None})
+
+                if previous_final_state.get("final_status") != "완결" and current_final_state["final_status"] == "완결":
+                    final_completed_at = current_final_state.get("final_completed_at")
+                    display_completed_at = (
+                        final_completed_at.isoformat()
+                        if hasattr(final_completed_at, "isoformat")
+                        else final_completed_at
                     )
 
-                    if record_content_completed_event(
+                    newly_completed_items.append(
+                        (
+                            content_id,
+                            self.source_name,
+                            display_completed_at,
+                            current_final_state.get("resolved_by"),
+                        )
+                    )
+
+                    inserted = record_content_completed_event(
                         conn,
+                        content_id=content_id,
+                        source=self.source_name,
+                        final_completed_at=final_completed_at,
+                        resolved_by=current_final_state.get("resolved_by"),
+                    )
+                    if inserted:
+                        cdc_events_inserted_count += 1
+                        cdc_events_inserted_items.append(content_id)
+
+            resolved_by_counts = {}
+            for _, _, _, resolved_by in newly_completed_items:
+                resolved_by_counts[resolved_by] = resolved_by_counts.get(resolved_by, 0) + 1
+
+            cdc_info = {
+                "cdc_mode": "final_state",
+                "newly_completed_count": len(newly_completed_items),
+                "resolved_by_counts": resolved_by_counts,
+                "cdc_events_inserted_count": cdc_events_inserted_count,
+                "cdc_events_inserted_items": cdc_events_inserted_items,
+            }
+
+            # 8) DB sync (commit is enforced here, not in crawler implementations)
+            added = self.synchronize_database(conn, all_content_today, ongoing_today, hiatus_today, finished_today)
+
+            # 9) Single commit here (forced)
+            conn.commit()
+
+            # IMPORTANT: keep return signature stable (3-tuple)
+            return added, newly_completed_items, cdc_info
+
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            raise
+
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except Exception:
+                    pass
+
                         content_id=content_id,
                         source=self.source_name,
                         final_completed_at=final_completed_at,
