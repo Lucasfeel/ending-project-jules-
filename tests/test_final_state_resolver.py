@@ -45,6 +45,7 @@ def test_immediate_completion_without_date():
     assert result['final_status'] == '완결'
     assert result['resolved_by'] == 'override'
     assert result['final_completed_at'] is None
+codex/implement-scheduled-completion-in-final-state-resolver-4qeeqy
 
 
 def test_resolver_uses_kst_default_now(monkeypatch):
@@ -63,3 +64,4 @@ def test_resolver_uses_kst_default_now(monkeypatch):
 
     assert result['final_status'] == '연재중'
     assert result['resolved_by'] == 'crawler'
+

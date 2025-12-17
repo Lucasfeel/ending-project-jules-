@@ -6,7 +6,9 @@ content. It is intentionally side-effect free so it can be reused in
 CDC snapshot and current-state calculations.
 """
 
+ codex/implement-scheduled-completion-in-final-state-resolver-4qeeqy
 from utils.time import now_kst_naive
+
 
 
 def resolve_final_state(content_status, override=None, now=None):
@@ -17,12 +19,16 @@ def resolve_final_state(content_status, override=None, now=None):
         override: Optional override row/dict containing ``override_status`` and
             ``override_completed_at``.
         now: Optional naive datetime for deterministic comparisons. Defaults to
+ codex/implement-scheduled-completion-in-final-state-resolver-4qeeqy
             ``now_kst_naive()``.
+
 
     Returns:
         dict: ``{"final_status", "final_completed_at", "resolved_by"}``
     """
+codex/implement-scheduled-completion-in-final-state-resolver-4qeeqy
     effective_now = now if now is not None else now_kst_naive()
+
 
     if not override:
         return {
