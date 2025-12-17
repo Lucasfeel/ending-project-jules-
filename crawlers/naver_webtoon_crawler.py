@@ -168,8 +168,6 @@ class NaverWebtoonCrawler(ContentCrawler):
                 inserts
             )
             print(f"{len(inserts)}개 신규 웹툰 DB 추가 완료.")
-
-        conn.commit()
         cursor.close()
         print("DB 동기화 완료.")
         return len(inserts)
